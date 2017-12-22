@@ -105,6 +105,9 @@ struct Hypothesis{
 		lcen = H->lcen;
 		rcen = H->rcen;
 		box = H->box;
+		prod = H->prod;
+		pt = H->pt;
+		prod_sse = H->prod_sse;
 	}
 };
 

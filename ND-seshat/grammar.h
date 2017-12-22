@@ -255,7 +255,7 @@ private:
 		}
 
 		if (create) {
-			std::shared_ptr<ProductionT> pt = std::make_shared<ProductionT>(noTerminales[S], pSymSet->getNClases());
+			std::shared_ptr<ProductionT> pt = std::make_shared<ProductionT>(noTerminales[S], pSymSet->getNClases(), S);
 			pt->setClase(id, pr, tex, 'i');
 			prodTerms.push_back(pt);
 		}
@@ -276,56 +276,56 @@ private:
 		if (ruleType == "H")
 		{
 			pd = std::static_pointer_cast<ProductionB>(std::make_shared<ProductionH>(
-				noTerminales[S], noTerminales[A], noTerminales[B], pr, out));
+				noTerminales[S], noTerminales[A], noTerminales[B], S, A, B, pr, out));
 			pd->setMerges(merge[0]);
 			prodsH.push_back(pd);
 		}
 		else if (ruleType == "V")
 		{
 			pd = std::static_pointer_cast<ProductionB>(std::make_shared<ProductionV>(
-				noTerminales[S], noTerminales[A], noTerminales[B], pr, out));
+				noTerminales[S], noTerminales[A], noTerminales[B], S, A, B, pr, out));
 			pd->setMerges(merge[0]);
 			prodsV.push_back(pd);
 		}
 		else if (ruleType == "Ve")
 		{
 			pd = std::static_pointer_cast<ProductionB>(std::make_shared<ProductionVe>(
-				noTerminales[S], noTerminales[A], noTerminales[B], pr, out));
+				noTerminales[S], noTerminales[A], noTerminales[B], S, A, B, pr, out));
 			pd->setMerges(merge[0]);
 			prodsVe.push_back(pd);
 		}
 		else if (ruleType == "Sup")
 		{
 			pd = std::static_pointer_cast<ProductionB>(std::make_shared<ProductionSup>(
-				noTerminales[S], noTerminales[A], noTerminales[B], pr, out));
+				noTerminales[S], noTerminales[A], noTerminales[B], S, A, B, pr, out));
 			pd->setMerges(merge[0]);
 			prodsSup.push_back(pd);
 		}
 		else if (ruleType == "Sub")
 		{
 			pd = std::static_pointer_cast<ProductionB>(std::make_shared<ProductionSub>(
-				noTerminales[S], noTerminales[A], noTerminales[B], pr, out));
+				noTerminales[S], noTerminales[A], noTerminales[B], S, A, B, pr, out));
 			pd->setMerges(merge[0]);
 			prodsSub.push_back(pd);
 		}
 		else if (ruleType == "SSE")
 		{
 			pd = std::static_pointer_cast<ProductionB>(std::make_shared<ProductionSSE>(
-				noTerminales[S], noTerminales[A], noTerminales[B], pr, out));
+				noTerminales[S], noTerminales[A], noTerminales[B], S, A, B, pr, out));
 			pd->setMerges(merge[0]);
 			prodsSSE.push_back(pd);
 		}
 		else if (ruleType == "Ins")
 		{
 			pd = std::static_pointer_cast<ProductionB>(std::make_shared<ProductionIns>(
-				noTerminales[S], noTerminales[A], noTerminales[B], pr, out));
+				noTerminales[S], noTerminales[A], noTerminales[B], S, A, B, pr, out));
 			pd->setMerges(merge[0]);
 			prodsIns.push_back(pd);
 		}
 		else if (ruleType == "Mrt")
 		{
 			pd = std::static_pointer_cast<ProductionB>(std::make_shared<ProductionMrt>(
-				noTerminales[S], noTerminales[A], noTerminales[B], pr, out));
+				noTerminales[S], noTerminales[A], noTerminales[B], S, A, B, pr, out));
 			pd->setMerges(merge[0]);
 			prodsMrt.push_back(pd);
 		}

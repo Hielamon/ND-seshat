@@ -9,7 +9,7 @@
 
 #define NB 1
 
-#define SHOW_PIPELINE
+//#define SHOW_PIPELINE
 
 void PrintSymSeg(std::shared_ptr<Hypothesis> &H)
 {
@@ -219,7 +219,6 @@ public:
 					cv::imshow("c1setH traverse", tmpImg2);
 					cv::moveWindow("c1setH traverse", winx, winy);
 					cv::waitKey(time);
-					cv::destroyAllWindows();
 
 					tmpImg2 = tmpImg1.clone();
 #endif // SHOW_PIPELINE
@@ -235,7 +234,6 @@ public:
 					cv::imshow("c1setV traverse", tmpImg2);
 					cv::moveWindow("c1setV traverse", winx, winy);
 					cv::waitKey(time);
-					cv::destroyAllWindows();
 
 					tmpImg2 = tmpImg1.clone();
 #endif // SHOW_PIPELINE
@@ -251,7 +249,6 @@ public:
 					cv::imshow("c1setU traverse", tmpImg2);
 					cv::moveWindow("c1setU traverse", winx, winy);
 					cv::waitKey(time);
-					cv::destroyAllWindows();
 
 					tmpImg2 = tmpImg1.clone();
 #endif // SHOW_PIPELINE
@@ -266,7 +263,6 @@ public:
 					cv::imshow("c1setI traverse", tmpImg2);
 					cv::moveWindow("c1setI traverse", winx, winy);
 					cv::waitKey(time);
-					cv::destroyAllWindows();
 
 					tmpImg2 = tmpImg1.clone();
 #endif // SHOW_PIPELINE
@@ -281,22 +277,40 @@ public:
 					cv::imshow("c1setM traverse", tmpImg2);
 					cv::moveWindow("c1setM traverse", winx, winy);
 					cv::waitKey(time);
-					cv::destroyAllWindows();
 #endif // SHOW_PIPELINE
 
 					//Look for combining {x_subs} y {x^sups} in {x_subs^sups}
 					//TODO :
+
+
 					
 				}//for (std::shared_ptr<CellCYK> c1 = tcyk.get(a); c1.use_count(); c1 = c1->sig)
 			}//for (int a = 1; a < talla; a++)
 
-			if (talla < N)
+			std::cout << "Size " << talla << ": Generated " << tcyk.size(talla) << std::endl;
+
+			if (talla <= N)
 			{
 				//Create new logspace structure of size "talla"
 				logspace[talla] = std::make_shared<LogSpace>(tcyk.get(talla), tcyk.size(talla), M->RX, M->RY);
+
+#ifdef SHOW_PIPELINE
+				int time = 0;
+				cv::Mat tmpImg1 = M->getRGBImg(), tmpImg2;
+				int winx = 10, winy = 10;
+				for (std::shared_ptr<CellCYK> c = tcyk.get(talla); c.use_count(); c = c->sig)
+				{
+					drawCellWithColor(tmpImg1, c, RandomColor());
+				}
+				std::stringstream ioStr;
+				ioStr << talla;
+				cv::imshow("talla" + ioStr.str(), tmpImg1);
+				cv::moveWindow("talla" + ioStr.str(), winx, winy);
+				cv::waitKey(time);
+#endif // SHOW_PIPELINE
 			}
 
-			std::cout << "Size " << talla << ": Generated " << tcyk.size(talla) << std::endl;
+			
 		}//for (int talla = 2; talla <= N; talla++)
 
 

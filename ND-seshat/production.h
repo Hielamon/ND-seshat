@@ -46,8 +46,8 @@ public:
 		setMerges('C');
 	}
 
-	ProductionB(int s, int a, int b, std::string &ss, std::string &sa, std::string &sb) : S(s), A(a), B(b), sS(ss), sA(sa), sB(sb) {}
-	ProductionB(int s, int a, int b, std::string &ss, std::string &sa, std::string &sb, float pr, const std::string &out)
+	ProductionB(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb) : S(s), A(a), B(b), sS(ss), sA(sa), sB(sb) {}
+	ProductionB(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
 		: S(s), A(a), B(b), sS(ss), sA(sa), sB(sb), outStr(out)
 	{
 		prior = pr > 0.0 ? log(pr) : -FLT_MAX;
@@ -93,6 +93,12 @@ public:
 	ProductionH(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
 
+	ProductionH(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionH(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+	
+
 	~ProductionH() {}
 
 	/*void print();
@@ -110,6 +116,12 @@ public:
 		: ProductionB(s, a, b) {}
 	ProductionV(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
+
+	ProductionV(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionV(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+
 	~ProductionV() {}
 	/*void print();
 	char tipo();
@@ -126,6 +138,12 @@ public:
 		: ProductionB(s, a, b) {}
 	ProductionU(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
+
+	ProductionU(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionU(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+
 	~ProductionU() {}
 	/*void print();
 	char tipo();
@@ -142,6 +160,12 @@ public:
 		: ProductionB(s, a, b) {}
 	ProductionVe(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
+
+	ProductionVe(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionVe(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+
 	~ProductionVe() {}
 	/*void print();
 	char tipo();
@@ -159,6 +183,12 @@ public:
 		: ProductionB(s, a, b) {}
 	ProductionSSE(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
+
+	ProductionSSE(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionSSE(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+
 	~ProductionSSE() {}
 	/*void print();
 	char tipo();
@@ -176,6 +206,12 @@ public:
 		: ProductionB(s, a, b) {}
 	ProductionSup(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
+
+	ProductionSup(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionSup(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+
 	~ProductionSup() {}
 	/*void print();
 	char tipo();
@@ -192,6 +228,12 @@ public:
 		: ProductionB(s, a, b) {}
 	ProductionSub(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
+
+	ProductionSub(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionSub(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+
 	~ProductionSub() {}
 	/*void print();
 	char tipo();
@@ -208,6 +250,12 @@ public:
 		: ProductionB(s, a, b) {}
 	ProductionIns(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
+
+	ProductionIns(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionIns(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+
 	~ProductionIns() {}
 	/*void print();
 	char tipo();
@@ -224,6 +272,12 @@ public:
 		: ProductionB(s, a, b) {}
 	ProductionMrt(int s, int a, int b, float pr, const std::string &out)
 		: ProductionB(s, a, b, pr, out) {}
+
+	ProductionMrt(int s, int a, int b, const const std::string &ss, const std::string &sa, const std::string &sb)
+		: ProductionB(s, a, b, ss, sa, sb) {}
+	ProductionMrt(int s, int a, int b, const std::string &ss, const std::string &sa, const std::string &sb, float pr, const std::string &out)
+		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
+
 	~ProductionMrt() {}
 	/*void print();
 	char tipo();
@@ -238,6 +292,10 @@ class ProductionT{
 public:
 	ProductionT(int s, int nclases) :
 		S(s), N(nclases), vTexStr(nclases), vMlType(nclases, 'z'),
+		vProbs(nclases, 0), vClases(nclases, false) {}
+
+	ProductionT(int s, int nclases, const std::string& ss) :
+		S(s), sS(ss), N(nclases), vTexStr(nclases), vMlType(nclases, 'z'),
 		vProbs(nclases, 0), vClases(nclases, false) {}
 
 	~ProductionT() {}
@@ -293,6 +351,7 @@ public:
 
 private:
 	int S;
+	std::string sS;
 	std::vector<bool> vClases;
 	std::vector<std::string> vTexStr;
 	std::vector<char> vMlType;
