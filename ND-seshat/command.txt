@@ -1,0 +1,1 @@
+..\x64\Release\ND-seshat.exe -imgdir VOC2007/JPEGImages/ -xml VOC2007/Annotations/hwf_0000000.xml
