@@ -248,6 +248,19 @@ public:
 
 		bsearch(sx, sy, ss, st, set);
 	}
+
+	void getS(coo &box, std::list<std::shared_ptr<CellCYK>> &set)
+	{
+		int sx, sy, ss, st;
+
+		//Set the region to search
+		sx = box.x - 1;      // (sx,sy)------
+		ss = box.x + 1;      //  ------------
+		sy = box.y - RY;   //  ------------
+		st = box.t + RY;   //  ------(ss,st)
+
+		bsearch(sx, sy, ss, st, set);
+	}
 };
 
 #endif
