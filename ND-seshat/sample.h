@@ -33,7 +33,7 @@ public:
 
 		std::fstream fs(charMapName, std::ios::in);
 		if (!fs.is_open())
-			HL_CERR("Failed to open the file " + charMapName);
+			HL_CERR_RETURN_FALSE("Failed to open the file " + charMapName);
 		int charMapSize;
 		fs >> charMapSize;
 
@@ -51,7 +51,7 @@ public:
 		boost::property_tree::ptree pt, annotation;
 		boost::property_tree::read_xml(xmlName, pt);
 		if (pt.empty())
-			HL_CERR("Cannot load the xml tree from " + xmlName);
+			HL_CERR_RETURN_FALSE("Cannot load the xml tree from " + xmlName);
 
 		std::string imgName, latexIDStr;
 		annotation = pt.get_child("annotation");
@@ -80,13 +80,13 @@ public:
 				{
 					seg.symID = mCharMap[nameID].second;
 					if (seg.symID < 0 || seg.symID >= pSymSet->getNClases())
-						HL_CERR("The symbol " + mCharMap[nameID].first +
+						HL_CERR_RETURN_FALSE("The symbol " + mCharMap[nameID].first +
 								" doesn't have a valid ID (" << seg.symID << ") in the symbol set");
 
 					seg.symStr = pSymSet->strClase(seg.symID);
 				}
 				else
-					HL_CERR("The symbol ID " << nameID << " from xml file is not valid ");
+					HL_CERR_RETURN_FALSE("The symbol ID " << nameID << " from xml file is not valid ");
 
 				seg.score = 1.0;
 
@@ -263,6 +263,8 @@ public:
 		return vSegUnits[segIdx];
 	}
 
+
+
 	cv::Mat getRGBImg()
 	{
 		cv::Mat result;
@@ -286,7 +288,7 @@ public:
 		if (tl.x <= br.x && tl.y <= br.y)
 		{
 			//The overlap is valid
-			dist = -std::sqrt((br.x - tl.x)*(br.y - tl.x));
+			dist = -std::sqrt((br.x - tl.x)*(br.y - tl.y));
 		}
 		else
 		{

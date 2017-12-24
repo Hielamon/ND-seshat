@@ -50,7 +50,7 @@ public:
 		K = k;
 
 		//Target = NULL;
-		Target =std::make_shared<Hypothesis>(-1, -FLT_MAX, coo());
+		Target =std::make_shared<Hypothesis>(-1, -FLT_MAX, std::shared_ptr<CellInfo>());
 		targetHIndex = -1;
 		pm_comps = 0.0;
 
@@ -86,8 +86,8 @@ public:
 
 		int pcomps = 0;
 
-		for (int i = 0; i < pCell->nc; i++)
-			if (pCell->ccc[i])
+		for (int i = 0; i < pCell->pCInfo->segN; i++)
+			if (pCell->pCInfo->segMask[i])
 				pcomps++;
 
 		if (pcomps > pm_comps || (pcomps == pm_comps && pCell->vNoTerm[HIndex]->pr > Target->pr)) {
@@ -100,10 +100,10 @@ public:
 
 	void add(int n, std::shared_ptr<CellCYK>& pCell, int noterm_id, std::vector<bool> &esinit)
 	{
-		coo key(pCell->box.x, pCell->box.y, pCell->box.s, pCell->box.t);
+		coo key(pCell->pCInfo->box.x, pCell->pCInfo->box.y, pCell->pCInfo->box.s, pCell->pCInfo->box.t);
 		std::map<coo, std::shared_ptr<CellCYK>>::iterator it = TS[n - 1].find(key);
 
-		pCell->talla = n;
+		pCell->pCInfo->talla = n;
 
 		if (it == TS[n - 1].end()) {
 			//Link as head of size  n
@@ -152,8 +152,8 @@ public:
 				if (maxpr_c > maxpr_r) {
 
 					//Copy the new set of strokes
-					for (int i = 0; i<pCell->nc; i++)
-						r->ccc[i] = pCell->ccc[i];
+					for (int i = 0; i<pCell->pCInfo->segN; i++)
+						r->pCInfo->segMask[i] = pCell->pCInfo->segMask[i];
 
 					//Replace the hypotheses for each non-terminal
 					for (int i = 0; i<pCell->nnt; i++)

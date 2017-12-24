@@ -20,69 +20,70 @@
 #include <cstdio>
 #include <vector>
 #include "hypothesis.h"
-#include "sample.h"
-
+//#include "sample.h"
+#include "cellInfo.h"
 
 
 class CellCYK{
 public:
-	//Bounding box spatial region coordinates
-	coo box;
-	//int x, y; //top-left
-	//int s, t; //bottom-right
+	//Cell info , include bounding-box, segMask, and talla
+	std::shared_ptr<CellInfo> pCInfo;
 
-			  //Hypotheses for every non-terminals
+	//total number of all non-terminals
 	int nnt;
+	//Hypotheses for every non-terminals
 	std::vector<std::shared_ptr<Hypothesis>> vNoTerm;
 
-	//Strokes covered in this cell
-	int nc;
-	std::vector<bool> ccc;
-	int talla; //total number of strokes
-
-			   //Next cell in linked list (CYK table of same size)
+	//Next cell in linked list (CYK table of same size)
 	std::shared_ptr<CellCYK> sig;
 
 	//Methods
-	CellCYK(int n, int ncc)
+	CellCYK(int n, int segN)
 	{
 		sig = NULL;
 		nnt = n;
-		nc = ncc;
-		talla = 0;
+
+		pCInfo = std::make_shared<CellInfo>();
+		pCInfo->segMask.resize(segN);
+		pCInfo->segN = segN;
+		pCInfo->talla = 0;
 
 		//Create (empty) hypotheses
 		vNoTerm.resize(nnt);
-
-		//Create (empty) strokes covered
-		ccc.resize(nc, false);
 	}
 	~CellCYK() {}
 
-	void setRegion(Sample &m, const int &segIdx)
+	void setRegion(coo &box, const int &segIdx)
 	{
-		SegUnit &seg = m.getSegUnit(segIdx);
-		ccc[segIdx] = true;
+		pCInfo->segMask[segIdx] = true;
+		pCInfo->box = box;
+	}
 
-		box.x = seg.ROI.x;
-		box.y = seg.ROI.y;
-		box.s = seg.ROI.br().x;
-		box.t = seg.ROI.br().y;
+	void setRegion(Sample &M, const int &segIdx)
+	{
+		pCInfo->segMask[segIdx] = true;
+		SegUnit &seg = M.getSegUnit(segIdx);
+		pCInfo->box.x = seg.ROI.x;
+		pCInfo->box.y = seg.ROI.y;
+		pCInfo->box.s = seg.ROI.br().x;
+		pCInfo->box.t = seg.ROI.br().y;
 	}
 
 	//Comparison operator for logspace ordering
 	bool operator<(const CellCYK &C)
 	{
-		if (box.x < C.box.x)
+		coo &boxC = C.pCInfo->box;
+		coo &box = pCInfo->box;
+		if (box.x < boxC.x)
 			return true;
-		if (box.x == C.box.x) {
-			if (box.y < C.box.y)
+		if (box.x == boxC.x) {
+			if (box.y < boxC.y)
 				return true;
-			if (box.y == C.box.y) {
-				if (box.s < C.box.s)
+			if (box.y == boxC.y) {
+				if (box.s < boxC.s)
 					return true;
-				if (box.s == C.box.s)
-					if (box.t < C.box.t)
+				if (box.s == boxC.s)
+					if (box.t < boxC.t)
 						return true;
 			}
 		}
@@ -92,18 +93,18 @@ public:
 	//Set the covered strokes to the union of cells A and B
 	void ccUnion(CellCYK &A, CellCYK &B)
 	{
-		for (int i = 0; i<nc; i++)
-			ccc[i] = (A.ccc[i] || B.ccc[i]) ? true : false;
+		for (int i = 0; i < pCInfo->segN; i++)
+			pCInfo->segMask[i] = (A.pCInfo->segMask[i] || B.pCInfo->segMask[i]) ? true : false;
 	}
 
 	//Check if cell H covers the same strokes that this
 	bool ccEqual(std::shared_ptr<CellCYK> &pCell)
 	{
-		if (talla != pCell->talla)
+		if (pCInfo->talla != pCell->pCInfo->talla)
 			return false;
 
-		for (int i = 0; i<nc; i++)
-			if (ccc[i] != pCell->ccc[i])
+		for (int i = 0; i<pCInfo->segN; i++)
+			if (pCInfo->segMask[i] != pCell->pCInfo->segMask[i])
 				return false;
 
 		return true;
@@ -112,8 +113,8 @@ public:
 	//Check if the intersection between the strokes of this cell and H is empty
 	bool compatible(std::shared_ptr<CellCYK> &pCell)
 	{
-		for (int i = 0; i<nc; i++)
-			if (ccc[i] && pCell->ccc[i])
+		for (int i = 0; i<pCInfo->segN; i++)
+			if (pCInfo->segMask[i] && pCell->pCInfo->segMask[i])
 				return false;
 
 		return true;
@@ -140,8 +141,8 @@ inline void MergeRegionsCenter(std::shared_ptr<CellCYK>& pCA, int ntIDA,
 		s->rcen = b->rcen;
 		break;
 	case 'C': //Center point
-		s->lcen = (pCA->box.y + pCA->box.t) / 2;
-		s->rcen = (pCB->box.y + pCB->box.t) / 2;
+		s->lcen = (pCA->pCInfo->box.y + pCA->pCInfo->box.t) / 2;
+		s->rcen = (pCB->pCInfo->box.y + pCB->pCInfo->box.t) / 2;
 		break;
 	case 'M': //Mean of both centers
 		s->lcen = (a->lcen + b->lcen) / 2; //a->lcen;

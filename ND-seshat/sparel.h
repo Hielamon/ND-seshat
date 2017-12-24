@@ -27,7 +27,7 @@ class CellCYK;
 #include "sample.h"
 
 //Aux functions
-std::shared_ptr<Hypothesis> leftmost(std::shared_ptr<Hypothesis> &h) {
+inline std::shared_ptr<Hypothesis> leftmost(std::shared_ptr<Hypothesis> &h) {
 	if (!h.use_count())
 		HL_CERR("Invalid Pointer");
 
@@ -37,10 +37,10 @@ std::shared_ptr<Hypothesis> leftmost(std::shared_ptr<Hypothesis> &h) {
 	std::shared_ptr<Hypothesis> izq = leftmost(h->hleft);
 	std::shared_ptr<Hypothesis> der = leftmost(h->hright);
 
-	return izq->box.x < der->box.x ? izq : der;
+	return izq->pCInfo->box.x < der->pCInfo->box.x ? izq : der;
 }
 
-std::shared_ptr<Hypothesis> rightmost(std::shared_ptr<Hypothesis> &h) {
+inline std::shared_ptr<Hypothesis> rightmost(std::shared_ptr<Hypothesis> &h) {
 	if (!h.use_count())
 		HL_CERR("Invalid Pointer");
 
@@ -50,19 +50,19 @@ std::shared_ptr<Hypothesis> rightmost(std::shared_ptr<Hypothesis> &h) {
 	std::shared_ptr<Hypothesis> izq = rightmost(h->hleft);
 	std::shared_ptr<Hypothesis> der = rightmost(h->hright);
 
-	return izq->box.s > der->box.s ? izq : der;
+	return izq->pCInfo->box.s > der->pCInfo->box.s ? izq : der;
 }
 
 //Percentage of the area of region A that overlaps with region B
-float solape(std::shared_ptr<Hypothesis> &a, std::shared_ptr<Hypothesis> &b) {
-	int x = std::max(a->box.x, b->box.x);
-	int y = std::max(a->box.y, b->box.y);
-	int s = std::min(a->box.s, b->box.s);
-	int t = std::min(a->box.t, b->box.t);
+inline float solape(std::shared_ptr<Hypothesis> &a, std::shared_ptr<Hypothesis> &b) {
+	int x = std::max(a->pCInfo->box.x, b->pCInfo->box.x);
+	int y = std::max(a->pCInfo->box.y, b->pCInfo->box.y);
+	int s = std::min(a->pCInfo->box.s, b->pCInfo->box.s);
+	int t = std::min(a->pCInfo->box.t, b->pCInfo->box.t);
 
 	if (s >= x && t >= y) {
 		float aSolap = (s - x + 1.0)*(t - y + 1.0);
-		float aTotal = (a->box.s - a->box.x + 1.0)*(a->box.t - a->box.y + 1.0);
+		float aTotal = (a->pCInfo->box.s - a->pCInfo->box.x + 1.0)*(a->pCInfo->box.t - a->pCInfo->box.y + 1.0);
 
 		return aSolap / aTotal;
 	}
@@ -89,7 +89,7 @@ private:
 			std::shared_ptr<Hypothesis> rma = rightmost(h1);
 			std::shared_ptr<Hypothesis> lmb = leftmost(h2);
 
-			if (lmb->box.x < rma->box.x || lmb->box.s <= rma->box.s)
+			if (lmb->pCInfo->box.x < rma->pCInfo->box.x || lmb->pCInfo->box.s <= rma->pCInfo->box.s)
 				return 0.0;
 		}
 
@@ -127,17 +127,17 @@ public:
 	void getFeas(std::shared_ptr<Hypothesis> &a, std::shared_ptr<Hypothesis> &b, std::vector<float> &sample, int ry)
 	{
 		//Normalization factor: combined height
-		float F = std::max(a->box.t, b->box.t) - std::min(a->box.y, b->box.y) + 1;
+		float F = std::max(a->pCInfo->box.t, b->pCInfo->box.t) - std::min(a->pCInfo->box.y, b->pCInfo->box.y) + 1;
 
-		sample[0] = (b->box.t - b->box.y + 1) / F;
+		sample[0] = (b->pCInfo->box.t - b->pCInfo->box.y + 1) / F;
 		sample[1] = (a->rcen - b->lcen) / F;
-		sample[2] = ((a->box.s + a->box.x) / 2.0 - (b->box.s + b->box.x) / 2.0) / F;
-		sample[3] = (b->box.x - a->box.s) / F;
-		sample[4] = (b->box.x - a->box.x) / F;
-		sample[5] = (b->box.s - a->box.s) / F;
-		sample[6] = (b->box.y - a->box.t) / F;
-		sample[7] = (b->box.y - a->box.y) / F;
-		sample[8] = (b->box.t - a->box.t) / F;
+		sample[2] = ((a->pCInfo->box.s + a->pCInfo->box.x) / 2.0 - (b->pCInfo->box.s + b->pCInfo->box.x) / 2.0) / F;
+		sample[3] = (b->pCInfo->box.x - a->pCInfo->box.s) / F;
+		sample[4] = (b->pCInfo->box.x - a->pCInfo->box.x) / F;
+		sample[5] = (b->pCInfo->box.s - a->pCInfo->box.s) / F;
+		sample[6] = (b->pCInfo->box.y - a->pCInfo->box.t) / F;
+		sample[7] = (b->pCInfo->box.y - a->pCInfo->box.y) / F;
+		sample[8] = (b->pCInfo->box.t - a->pCInfo->box.t) / F;
 	}
 
 	double getHorProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
@@ -155,17 +155,17 @@ public:
 	double getVerProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, bool strict = false)
 	{
 		//Pruning
-		if (hb->box.y < (ha->box.y + ha->box.t) / 2
-			|| abs((ha->box.x + ha->box.s) / 2 - (hb->box.x + hb->box.s) / 2) > 2.5*mue->RX
-			|| (hb->box.x > ha->box.s || hb->box.s < ha->box.x))
+		if (hb->pCInfo->box.y < (ha->pCInfo->box.y + ha->pCInfo->box.t) / 2
+			|| abs((ha->pCInfo->box.x + ha->pCInfo->box.s) / 2 - (hb->pCInfo->box.x + hb->pCInfo->box.s) / 2) > 2.5*mue->RX
+			|| (hb->pCInfo->box.x > ha->pCInfo->box.s || hb->pCInfo->box.s < ha->pCInfo->box.x))
 			return 0.0;
 
 		if (!strict)
 			return compute_prob(ha, hb, 3);
 
 		//Penalty for strict relationships
-		float penalty = abs(ha->box.x - hb->box.x) / (3.0*mue->RX)
-			+ abs(ha->box.s - hb->box.s) / (3.0*mue->RX);
+		float penalty = abs(ha->pCInfo->box.x - hb->pCInfo->box.x) / (3.0*mue->RX)
+			+ abs(ha->pCInfo->box.s - hb->pCInfo->box.s) / (3.0*mue->RX);
 
 		if (penalty > 0.95) penalty = 0.95;
 
@@ -173,9 +173,15 @@ public:
 	}
 	double getInsProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
 	{
+		int sqrtH = hb->pCInfo->box.t - hb->pCInfo->box.y;
+
 		if (solape(hb, ha) < 0.5 ||
-			hb->box.x < ha->box.x || hb->box.y < ha->box.y)
+			hb->pCInfo->box.x < ha->pCInfo->box.x || hb->pCInfo->box.y < (ha->pCInfo->box.y - sqrtH*0.3))
 			return 0.0;
+
+		/*if (solape(hb, ha) < 0.5 ||
+			hb->pCInfo->box.x < ha->pCInfo->box.x || hb->pCInfo->box.y < ha->pCInfo->box.y)
+			return 0.0;*/
 
 		return compute_prob(ha, hb, 4);
 	}

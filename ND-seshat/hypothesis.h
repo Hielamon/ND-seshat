@@ -29,46 +29,20 @@
 #include <list>
 #include <memory>
 #include "production.h"
+#include "cellInfo.h"
 //#include "cellcyk.h"
 //#include "grammar.h"
 
-//Structure to handle coordinates
-struct coo {
-	int x, y, s, t;
 
-	coo() {
-		x = y = s = t = -1;
-	}
-
-	coo(int a, int b, int c, int d) {
-		x = a; y = b; s = c; t = d;
-	}
-
-	bool operator==(coo &R) {
-		return x == R.x && y == R.y && s == R.s && t == R.t;
-	}
-};
-
-inline bool operator<(const coo &A, const coo &B)
-{
-	if (A.x < B.x) return true;
-	if (A.x == B.x) {
-		if (A.y < B.y) return true;
-		if (A.y == B.y) {
-			if (A.s < B.s) return true;
-			if (A.s == B.s)
-				if (A.t < B.t) return true;
-		}
-	}
-	return false;
-}
 
 struct Hypothesis{
 	int clase; //If the hypothesis encodes a terminal symbols this is the class id (-1 otherwise)
 	double pr; //log-probability
 
-	coo box;
-			   //References to left-child (hi) and right-child (hd) to create the derivation tree
+	//Cell info , include bounding-box, segMask, and talla
+	std::shared_ptr<CellInfo> pCInfo;
+	
+	//References to left-child (hi) and right-child (hd) to create the derivation tree
 	std::shared_ptr<Hypothesis> hleft, hright;
 
 	//The production used to create this hypothesis (either Binary or terminal)
@@ -86,9 +60,9 @@ struct Hypothesis{
 	//int ntid;        //Nonterminal ID in parent
 
 					 //Methods
-	Hypothesis(int c, double p, coo &box_)
+	Hypothesis(int c, double p, std::shared_ptr<CellInfo> pCInfo_)
 	{
-		box = box_;
+		pCInfo = pCInfo_;
 		clase = c;
 		pr = p;
 		//hright = hleft = NULL;
@@ -104,10 +78,20 @@ struct Hypothesis{
 		hright = H->hright;
 		lcen = H->lcen;
 		rcen = H->rcen;
-		box = H->box;
+		pCInfo = H->pCInfo;
 		prod = H->prod;
 		pt = H->pt;
 		prod_sse = H->prod_sse;
+	}
+
+	//Check if the intersection between the strokes of this cell and H is empty
+	bool compatible(std::shared_ptr<Hypothesis> &pH)
+	{
+		for (int i = 0; i<pCInfo->segN; i++)
+			if (pCInfo->segMask[i] && pH->pCInfo->segMask[i])
+				return false;
+
+		return true;
 	}
 };
 

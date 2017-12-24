@@ -1,5 +1,6 @@
 #pragma once
 #include <algorithm>
+#include <sstream>
 #include "symSet.h"
 #include "grammar.h"
 #include "sample.h"
@@ -11,7 +12,7 @@
 
 //#define SHOW_PIPELINE
 
-void PrintSymSeg(std::shared_ptr<Hypothesis> &H)
+inline void PrintSymSeg(std::shared_ptr<Hypothesis> &H)
 {
 	if (!H.use_count())
 		HL_CERR("The Null Pointer");
@@ -26,7 +27,7 @@ void PrintSymSeg(std::shared_ptr<Hypothesis> &H)
 	}
 }
 
-void PrintLatex(std::shared_ptr<Hypothesis> &H, std::shared_ptr<Grammar> &pG) {
+inline void PrintLatex(std::shared_ptr<Hypothesis> &H, std::shared_ptr<Grammar> &pG) {
 	if (!H.use_count())
 		HL_CERR("The Null Pointer");
 
@@ -102,16 +103,92 @@ void PrintLatex(std::shared_ptr<Hypothesis> &H, std::shared_ptr<Grammar> &pG) {
 	//std::cout << std::endl;
 }
 
-void drawCell(cv::Mat &src, std::shared_ptr<CellCYK> &pCell)
+inline void PrintLatexToString(std::shared_ptr<Hypothesis> &H, std::shared_ptr<Grammar> &pG, std::stringstream &result) {
+	if (!H.use_count())
+		HL_CERR("The Null Pointer");
+
+	if (!H->pt.use_count())
+	{
+		//H->prod->printOut(pG, H);
+		std::string &outStr = H->prod->get_outstr();
+		if (!outStr.empty()) {
+
+			int pd1 = outStr.find("$1");
+			int pd2 = outStr.find("$2");
+
+			int i = 0;
+			if (pd2 >= 0 && pd1 >= 0 && pd2 < pd1)
+			{
+				while (outStr[i] != '$' || outStr[i + 1] != '2')
+				{
+					result << outStr[i];
+					i++;
+				}
+				i += 2;
+
+				PrintLatex(H->hright, pG);
+				if (H->hright->clase < 0)
+
+					while (outStr[i] != '$' || outStr[i + 1] != '1')
+					{
+						result << outStr[i];
+						i++;
+					}
+				i += 2;
+
+				PrintLatex(H->hleft, pG);
+			}
+			else
+			{
+				if (pd1 >= 0)
+				{
+					while (outStr[i] != '$' || outStr[i + 1] != '1')
+					{
+						result << outStr[i];
+						i++;
+					}
+					i += 2;
+
+					PrintLatex(H->hleft, pG);
+				}
+				if (pd2 >= 0)
+				{
+					while (outStr[i] != '$' || outStr[i + 1] != '2')
+					{
+						result << outStr[i];
+						i++;
+					}
+					i += 2;
+
+					PrintLatex(H->hright, pG);
+				}
+			}
+
+			while (outStr[i])
+			{
+				result << outStr[i];
+				i++;
+			}
+		}
+
+	}
+	else {
+		std::string clatex = H->pt->getTeX(H->clase);
+		result << clatex;
+	}
+	//std::cout << std::endl;
+}
+
+inline void drawCell(cv::Mat &src, std::shared_ptr<CellCYK> &pCell)
 {
-	coo &box = pCell->box;
+	coo &box = pCell->pCInfo->box;
 	cv::Rect roi(box.x, box.y, box.s - box.x, box.t - box.y);
 	cv::rectangle(src, roi, RandomColor(), 1);
 }
 
-void drawCellWithColor(cv::Mat &src, std::shared_ptr<CellCYK> &pCell, cv::Scalar &color)
+inline void drawCellWithColor(cv::Mat &src, std::shared_ptr<CellCYK> &pCell, cv::Scalar &color)
 {
-	coo &box = pCell->box;
+	coo &box = pCell->pCInfo->box;
 	cv::Rect roi(box.x, box.y, box.s - box.x, box.t - box.y);
 	cv::rectangle(src, roi, color, 3);
 }
@@ -281,7 +358,25 @@ public:
 
 					//Look for combining {x_subs} y {x^sups} in {x_subs^sups}
 					//TODO :
+					for (int pps = 0; pps<c1->nnt; pps++) {
 
+						//If c1->noterm[pa] is a Hypothesis of a subscript (parent_son)
+						if (c1->vNoTerm[pps] && c1->vNoTerm[pps]->prod && c1->vNoTerm[pps]->prod->tipo() == 'B') {
+
+							logspace[b + c1->vNoTerm[pps]->hleft->pCInfo->talla]->getS(c1, c1setS); //sup/sub-scripts union
+
+							for (auto c2 = c1setS.begin(); c2 != c1setS.end(); c2++) {
+
+								if ((*c2)->pCInfo->box.x == c1->pCInfo->box.x && c1 != *c2) {
+
+									traverseProductionSSE(c1, *c2, M, tcyk, talla, pG->prodsSSE);
+								}
+
+							}//end for c2 in c1setS
+
+							c1setS.clear();
+						}
+					}//end for(int pps=0; pps<c1->nnt; pps++)
 
 					
 				}//for (std::shared_ptr<CellCYK> c1 = tcyk.get(a); c1.use_count(); c1 = c1->sig)
@@ -324,7 +419,7 @@ public:
 		if (!mlh.use_count() || !mlc.use_count())
 			HL_CERR("\nNo hypothesis found!!");
 
-		std::cout << "\nMost Likely Hypothesis " << mlc->talla << " Segmentations" << std::endl;
+		std::cout << "\nMost Likely Hypothesis " << mlc->pCInfo->talla << " Segmentations" << std::endl;
 
 		std::cout << "Math Symbols : " << std::endl;
 		PrintSymSeg(mlh);
@@ -398,7 +493,7 @@ private:
 						insertar = true;
 
 						//Create new symbol
-						pCell->vNoTerm[ntID] = std::make_shared<Hypothesis>(clase[k], prob, pCell->box);
+						pCell->vNoTerm[ntID] = std::make_shared<Hypothesis>(clase[k], prob, pCell->pCInfo);
 						pCell->vNoTerm[ntID]->pt = prod;
 
 						//Compute the vertical centroid according to the type of symbol
@@ -406,7 +501,7 @@ private:
 						if (type == 0)       cen = cmy; //Normal
 						else if (type == 1) cen = asc; //Ascendant
 						else if (type == 2) cen = des; //Descendant
-						else                cen = (pCell->box.t + pCell->box.y)*0.5; //Middle point
+						else                cen = (pCell->pCInfo->box.t + pCell->pCInfo->box.y)*0.5; //Middle point
 
 																	   //Vertical center
 						pCell->vNoTerm[ntID]->lcen = cen;
@@ -445,7 +540,7 @@ private:
 		 //TODO : induce the penalty function
 		 if (clusterF > 0.0) {
 
-			 grpen = M->group_penalty(pCA->ccc, pCB->ccc);
+			 grpen = M->group_penalty(pCA->pCInfo->segMask, pCB->pCInfo->segMask);
 			 //If distance is infinity -> not visible
 			 if (grpen >= M->INF_DIST)
 				 return pCS;
@@ -472,10 +567,10 @@ private:
 		 prob = pbfactor *pd->prior + rfactor * log(prob * grpen) + A->pr + B->pr;
 
 		 //Copute resulting region
-		 pCS->box.x = std::min(pCA->box.x, pCB->box.x);
-		 pCS->box.y = std::min(pCA->box.y, pCB->box.y);
-		 pCS->box.s = std::max(pCA->box.s, pCB->box.s);
-		 pCS->box.t = std::max(pCA->box.t, pCB->box.t);
+		 pCS->pCInfo->box.x = std::min(pCA->pCInfo->box.x, pCB->pCInfo->box.x);
+		 pCS->pCInfo->box.y = std::min(pCA->pCInfo->box.y, pCB->pCInfo->box.y);
+		 pCS->pCInfo->box.s = std::max(pCA->pCInfo->box.s, pCB->pCInfo->box.s);
+		 pCS->pCInfo->box.t = std::max(pCA->pCInfo->box.t, pCB->pCInfo->box.t);
 
 		 //Set the Cell covered
 		 pCS->ccUnion(*pCA, *pCB);
@@ -485,7 +580,7 @@ private:
 			 clase = pSymSet->keyClase(pd->get_outstr());
 
 		 //Create hypothesis
-		 pCS->vNoTerm[ps] = std::make_shared<Hypothesis>(clase, prob, pCS->box);
+		 pCS->vNoTerm[ps] = std::make_shared<Hypothesis>(clase, prob, pCS->pCInfo);
 
 		 MergeRegionsCenter(pCA, ntIDA, pCB, ntIDB, pCS, ps, pd->merge_cen);
 
@@ -569,6 +664,64 @@ private:
 				 else {
 					 tcyk.add(talla, pCell, -1, pG->esInit); //Add to parsing table
 				 }
+			 }
+		 }
+	 }
+
+	 void traverseProductionSSE(std::shared_ptr<CellCYK> &c1,
+								std::shared_ptr<CellCYK> &c2,
+								std::shared_ptr<Sample> &M, TableCYK &tcyk, int talla,
+								std::vector<std::shared_ptr<ProductionB>> &vProdSSE)
+	 {
+		 int N = M->getSegUnitSize();
+		 int K = pG->noTerminales.size();
+
+		 for (size_t i = 0; i < vProdSSE.size(); i++)
+		 {
+			 std::shared_ptr<ProductionB> &pd = vProdSSE[i];
+
+			 if (pd->prior == -FLT_MAX) continue;
+			 //Production S -> A B
+			 int ps = pd->S;
+			 int pa = pd->A;
+			 int pb = pd->B;
+
+			 if (c1->vNoTerm[pa] && c2->vNoTerm[pb]
+				 && c1->vNoTerm[pa]->prod && c2->vNoTerm[pb]->prod
+				 && c1->vNoTerm[pa]->hleft == c2->vNoTerm[pb]->hleft
+				 && c1->vNoTerm[pa]->prod->tipo() == 'B'
+				 && c2->vNoTerm[pb]->prod->tipo() == 'P'
+				 && c1->vNoTerm[pa]->hright->compatible(c2->vNoTerm[pb]->hright)) {
+
+
+				 //Subscript and superscript should start almost vertically aligned
+				 if (std::abs(c1->vNoTerm[pa]->hright->pCInfo->box.x - c2->vNoTerm[pb]->hright->pCInfo->box.x) > 3 * M->RX) continue;
+				 //Subscript and superscript should not overlap
+				 if (std::max(solape(c1->vNoTerm[pa]->hright, c2->vNoTerm[pb]->hright),
+					 solape(c2->vNoTerm[pb]->hright, c1->vNoTerm[pa]->hright)) > 0.1) continue;
+
+				 float prob = c1->vNoTerm[pa]->pr + c2->vNoTerm[pb]->pr - c1->vNoTerm[pa]->hleft->pr;
+
+				 std::shared_ptr<CellCYK> pCell = std::make_shared<CellCYK>(K, N);
+
+				 pCell->pCInfo->box.x = std::min(c1->pCInfo->box.x, c2->pCInfo->box.x);
+				 pCell->pCInfo->box.y = std::min(c1->pCInfo->box.y, c2->pCInfo->box.y);
+				 pCell->pCInfo->box.s = std::max(c1->pCInfo->box.s, c2->pCInfo->box.s);
+				 pCell->pCInfo->box.t = std::max(c1->pCInfo->box.t, c2->pCInfo->box.t);
+
+				 pCell->vNoTerm[ps] = std::make_shared<Hypothesis>(-1, prob, pCell->pCInfo);
+
+				 pCell->vNoTerm[ps]->lcen = c1->vNoTerm[pa]->lcen;
+				 pCell->vNoTerm[ps]->rcen = c1->vNoTerm[pa]->rcen;
+				 pCell->ccUnion(*c1, *c2);
+
+				 pCell->vNoTerm[ps]->hleft = c1->vNoTerm[pa];
+				 pCell->vNoTerm[ps]->hright = c2->vNoTerm[pb]->hright;
+				 pCell->vNoTerm[ps]->prod = pd;
+				 //Save the production of the superscript in order to recover it when printing the used productions
+				 pCell->vNoTerm[ps]->prod_sse = c2->vNoTerm[pb]->prod;
+
+				 tcyk.add(talla, pCell, ps, pG->esInit);
 			 }
 		 }
 	 }

@@ -38,16 +38,16 @@ class LogSpace {
 	}
 	int partition(std::vector<std::shared_ptr<CellCYK>> &vec, int ini, int fin)
 	{
-		int piv = vec[ini]->box.x;
+		int piv = vec[ini]->pCInfo->box.x;
 		int i = ini - 1, j = fin + 1;
 
 		do {
 			do {
 				j--;
-			} while (vec[j]->box.x > piv);
+			} while (vec[j]->pCInfo->box.x > piv);
 			do {
 				i++;
-			} while (vec[i]->box.x < piv);
+			} while (vec[i]->pCInfo->box.x < piv);
 
 			if (i<j) {
 				std::shared_ptr<CellCYK> aux = vec[i];
@@ -65,15 +65,15 @@ class LogSpace {
 		for (i = 0, j = N; i<j; ) {
 			int m = (i + j) / 2;
 
-			if (sx <= data[m]->box.x)
+			if (sx <= data[m]->pCInfo->box.x)
 				j = m;
 			else
 				i = m + 1;
 		}
 
 		//Retrieve the compatible regions
-		while (i<N && data[i]->box.x <= ss) {
-			if (data[i]->box.y <= st && data[i]->box.t >= sy) {
+		while (i<N && data[i]->pCInfo->box.x <= ss) {
+			if (data[i]->pCInfo->box.y <= st && data[i]->pCInfo->box.t >= sy) {
 				set.push_back(data[i]);
 			}
 			i++;
@@ -86,7 +86,7 @@ class LogSpace {
 		for (i = 0, j = N; i<j; ) {
 			int m = (i + j) / 2;
 
-			if (sx <= data[m]->box.x)
+			if (sx <= data[m]->pCInfo->box.x)
 				j = m;
 			else
 				i = m + 1;
@@ -94,20 +94,20 @@ class LogSpace {
 
 		//Retrieve the compatible regions
 		if (U_V) { //Direction 'Up' (U)
-			while (i<N && data[i]->box.x <= ss) {
-				if (data[i]->box.t <= st && data[i]->box.t >= sy && data[i]->box.s <= ss) {
-					if (data[i]->box.t < cd->box.y)
-						sy = std::max(std::max(data[i]->box.y, data[i]->box.t - RY), sy);
+			while (i<N && data[i]->pCInfo->box.x <= ss) {
+				if (data[i]->pCInfo->box.t <= st && data[i]->pCInfo->box.t >= sy && data[i]->pCInfo->box.s <= ss) {
+					if (data[i]->pCInfo->box.t < cd->pCInfo->box.y)
+						sy = std::max(std::max(data[i]->pCInfo->box.y, data[i]->pCInfo->box.t - RY), sy);
 					set.push_back(data[i]);
 				}
 				i++;
 			}
 		}
 		else { //Direction 'Down' (V)
-			while (i<N && data[i]->box.x <= ss) {
-				if (data[i]->box.y <= st && data[i]->box.y >= sy && data[i]->box.s <= ss) {
-					if (data[i]->box.y > cd->box.t)
-						st = std::min(std::min(data[i]->box.t, data[i]->box.y + RY), st);
+			while (i<N && data[i]->pCInfo->box.x <= ss) {
+				if (data[i]->pCInfo->box.y <= st && data[i]->pCInfo->box.y >= sy && data[i]->pCInfo->box.s <= ss) {
+					if (data[i]->pCInfo->box.y > cd->pCInfo->box.t)
+						st = std::min(std::min(data[i]->pCInfo->box.t, data[i]->pCInfo->box.y + RY), st);
 					set.push_back(data[i]);
 				}
 				i++;
@@ -121,17 +121,17 @@ class LogSpace {
 		for (i = 0, j = N; i<j; ) {
 			int m = (i + j) / 2;
 
-			if (sx <= data[m]->box.x)
+			if (sx <= data[m]->pCInfo->box.x)
 				j = m;
 			else
 				i = m + 1;
 		}
 
 		//Retrieve the compatible regions
-		while (i<N && data[i]->box.x <= ss) {
-			if (data[i]->box.y <= st && data[i]->box.t >= sy) {
-				if (data[i]->box.x > cd->box.s)
-					ss = std::min(std::min(data[i]->box.s, data[i]->box.x + RX), ss);
+		while (i<N && data[i]->pCInfo->box.x <= ss) {
+			if (data[i]->pCInfo->box.y <= st && data[i]->pCInfo->box.t >= sy) {
+				if (data[i]->pCInfo->box.x > cd->pCInfo->box.s)
+					ss = std::min(std::min(data[i]->pCInfo->box.s, data[i]->pCInfo->box.x + RX), ss);
 				set.push_back(data[i]);
 			}
 			i++;
@@ -163,10 +163,10 @@ public:
 		int sx, sy, ss, st;
 
 		//Set the region to search
-		sx = std::max(pCell->box.x + 1, pCell->box.s - (int)(RX * 2));  // (sx,sy)------
-		ss = pCell->box.s + RX * 8;                    //  ------------
-		sy = pCell->box.y - RY;                      //  ------------
-		st = pCell->box.t + RY;                      //  ------(ss,st)
+		sx = std::max(pCell->pCInfo->box.x + 1, pCell->pCInfo->box.s - (int)(RX * 2));  // (sx,sy)------
+		ss = pCell->pCInfo->box.s + RX * 8;                    //  ------------
+		sy = pCell->pCInfo->box.y - RY;                      //  ------------
+		st = pCell->pCInfo->box.t + RY;                      //  ------(ss,st)
 
 											 //Retrieve the regions
 		bsearchHBP(sx, sy, ss, st, set, pCell);
@@ -178,10 +178,10 @@ public:
 		int sx, sy, ss, st;
 
 		//Set the region to search
-		sx = pCell->box.x - 2 * RX;
-		ss = pCell->box.s + 2 * RX;
-		sy = std::max(pCell->box.t - RY, pCell->box.y + 1);
-		st = pCell->box.t + RY * 3;
+		sx = pCell->pCInfo->box.x - 2 * RX;
+		ss = pCell->pCInfo->box.s + 2 * RX;
+		sy = std::max(pCell->pCInfo->box.t - RY, pCell->pCInfo->box.y + 1);
+		st = pCell->pCInfo->box.t + RY * 3;
 
 		//Retrieve the regions
 		bsearchStv(sx, sy, ss, st, set, false, pCell);
@@ -196,10 +196,10 @@ public:
 		int sx, sy, ss, st;
 
 		//Set the region to search
-		sx = pCell->box.x - 2 * RX;
-		ss = pCell->box.s + 2 * RX;
-		sy = pCell->box.y - RY * 3;
-		st = std::min(pCell->box.y + RY, pCell->box.t - 1);
+		sx = pCell->pCInfo->box.x - 2 * RX;
+		ss = pCell->pCInfo->box.s + 2 * RX;
+		sy = pCell->pCInfo->box.y - RY * 3;
+		st = std::min(pCell->pCInfo->box.y + RY, pCell->pCInfo->box.t - 1);
 
 		//Retrieve the regions
 		bsearchStv(sx, sy, ss, st, set, true, pCell);
@@ -211,10 +211,11 @@ public:
 		int sx, sy, ss, st;
 
 		//Set the region to search
-		sx = pCell->box.x + 1;  // (sx,sy)------
-		ss = pCell->box.s + RX; //  ------------
-		sy = pCell->box.y + 1;  //  ------------
-		st = pCell->box.t + RY; //  ------(ss,st)
+		sx = pCell->pCInfo->box.x + 1;  // (sx,sy)------
+		ss = pCell->pCInfo->box.s + RX; //  ------------
+		sy = pCell->pCInfo->box.y + 1;  //  ------------
+		//sy = pCell->pCInfo->box.y - RY * 0.3;  //  ------------
+		st = pCell->pCInfo->box.t + RY; //  ------(ss,st)
 
 						//Retrieve the regions
 		bsearch(sx, sy, ss, st, set);
@@ -226,10 +227,10 @@ public:
 		int sx, sy, ss, st;
 
 		//Set the region to search
-		sx = pCell->box.x - 2 * RX;            // (sx,sy)------
-		ss = std::min(pCell->box.x + 2 * RX, pCell->box.s); //  ------------
-		sy = pCell->box.y - RY;              //  ------------
-		st = std::min(pCell->box.y + 2 * RY, pCell->box.t); //  ------(ss,st)
+		sx = pCell->pCInfo->box.x - 2 * RX;            // (sx,sy)------
+		ss = std::min(pCell->pCInfo->box.x + 2 * RX, pCell->pCInfo->box.s); //  ------------
+		sy = pCell->pCInfo->box.y - RY;              //  ------------
+		st = std::min(pCell->pCInfo->box.y + 2 * RY, pCell->pCInfo->box.t); //  ------(ss,st)
 
 									   //Retrieve the regions
 		bsearch(sx, sy, ss, st, set);
@@ -241,10 +242,10 @@ public:
 		int sx, sy, ss, st;
 
 		//Set the region to search
-		sx = pCell->box.x - 1;      // (sx,sy)------
-		ss = pCell->box.x + 1;      //  ------------
-		sy = pCell->box.y - RY;   //  ------------
-		st = pCell->box.t + RY;   //  ------(ss,st)
+		sx = pCell->pCInfo->box.x - 1;      // (sx,sy)------
+		ss = pCell->pCInfo->box.x + 1;      //  ------------
+		sy = pCell->pCInfo->box.y - RY;   //  ------------
+		st = pCell->pCInfo->box.t + RY;   //  ------(ss,st)
 
 		bsearch(sx, sy, ss, st, set);
 	}

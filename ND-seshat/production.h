@@ -63,8 +63,6 @@ public:
 		merge_cen = c;
 	}
 
-	
-
 	bool check_out()
 	{
 		if (outStr.find("$1") == std::string::npos &&
@@ -79,8 +77,8 @@ public:
 	}
 
 	//Pure virtual functions
-	/*virtual char tipo() = 0;
-	virtual void print() = 0;
+	virtual char tipo() = 0;
+	/*virtual void print() = 0;
 	virtual void print_mathml(Grammar *G, Hypothesis *H, FILE *fout, int *nid) = 0;*/
 };
 
@@ -101,6 +99,10 @@ public:
 
 	~ProductionH() {}
 
+	char tipo()
+	{
+		return 'H';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);
@@ -123,6 +125,11 @@ public:
 		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
 
 	~ProductionV() {}
+
+	char tipo()
+	{
+		return 'V';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);
@@ -145,6 +152,11 @@ public:
 		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
 
 	~ProductionU() {}
+
+	char tipo()
+	{
+		return 'U';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);
@@ -167,6 +179,11 @@ public:
 		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
 
 	~ProductionVe() {}
+
+	char tipo()
+	{
+		return 'e';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);
@@ -190,6 +207,11 @@ public:
 		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
 
 	~ProductionSSE() {}
+
+	char tipo()
+	{
+		return 'S';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);
@@ -213,6 +235,11 @@ public:
 		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
 
 	~ProductionSup() {}
+
+	char tipo()
+	{
+		return 'P';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);
@@ -235,6 +262,11 @@ public:
 		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
 
 	~ProductionSub() {}
+
+	char tipo()
+	{
+		return 'B';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);
@@ -257,6 +289,11 @@ public:
 		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
 
 	~ProductionIns() {}
+
+	char tipo()
+	{
+		return 'I';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);
@@ -279,6 +316,11 @@ public:
 		: ProductionB(s, a, b, ss, sa, sb, pr, out) {}
 
 	~ProductionMrt() {}
+
+	char tipo()
+	{
+		return 'M';
+	}
 	/*void print();
 	char tipo();
 	void mergeRegions(Hypothesis *a, Hypothesis *b, Hypothesis *s);

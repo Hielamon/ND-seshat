@@ -151,6 +151,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="cellcyk.h" />
+    <ClInclude Include="cellInfo.h" />
     <ClInclude Include="gmm.h" />
     <ClInclude Include="grammar.h" />
     <ClInclude Include="hypothesis.h" />

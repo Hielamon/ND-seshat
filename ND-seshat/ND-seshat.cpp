@@ -1,6 +1,9 @@
 #define MAIN_FILE
 #include <commonMacro.h>
 
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/xml_parser.hpp>
+
 #include "grammar.h"
 #include "symSet.h"
 #include "sample.h"
@@ -8,6 +11,7 @@
 
 std::string testXML = "VOC2007/Annotations/hwf_0000007.xml";
 std::string imgPath = "VOC2007/JPEGImages/";
+
 
 int parseCmdArgs(int argc, char** argv)
 {
