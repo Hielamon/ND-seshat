@@ -323,7 +323,7 @@ public:
 					if (GetOverlapRoi(emptyROI, vSegUnits[i].ROI, olROI))
 					{
 						float r = main_x ? (olROI.height / (emptyROI.height + 0.00001)) : (olROI.width / (emptyROI.width + 0.00001));
-						if (r > 0.4)
+						if (r > 0.25)
 						{
 							//invisible dist
 							dist = FLT_MAX;

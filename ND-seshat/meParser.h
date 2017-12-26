@@ -10,7 +10,7 @@
 
 #define NB 1
 
-//#define SHOW_PIPELINE
+#define SHOW_PIPELINE
 
 inline void PrintSymSeg(std::shared_ptr<Hypothesis> &H)
 {
