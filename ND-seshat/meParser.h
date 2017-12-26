@@ -564,7 +564,7 @@ private:
 
 		 //Compute the (log)probability
 		 //prob = pbfactor * pd->prior + rfactor * log(prob * grpen) + A->pr + B->pr;
-		 prob = pbfactor *pd->prior + rfactor * log(prob * grpen) + A->pr + B->pr;
+		 prob = pbfactor *pd->prior + rfactor * log( prob * grpen) + A->pr + B->pr;
 
 		 //Copute resulting region
 		 pCS->pCInfo->box.x = std::min(pCA->pCInfo->box.x, pCB->pCInfo->box.x);
