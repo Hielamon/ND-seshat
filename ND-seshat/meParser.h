@@ -622,27 +622,38 @@ private:
 			 int pb = pd->B;
 
 			 if (c1->vNoTerm[pa].use_count() && c2->vNoTerm[pb].use_count()) {
+
+				 std::shared_ptr<Hypothesis> &ha = c1->vNoTerm[pa], hb = c2->vNoTerm[pb];
+
+				 //Custom adjustment to the probability from center 
+				 //Specially for the H¡¢SUP¡¢and SUB
+				 double customPenalty = 0.0;
+				 int cenDiff = ha->rcen - hb->lcen;
+				 int sumcen = ((ha->pCInfo->box.t - ha->pCInfo->box.y) +
+					 (hb->pCInfo->box.t - hb->pCInfo->box.y)) * 0.5;
+
 				 double cdpr = 0.0;
 				 switch (pType)
 				 {
 				 case Grammar::H:
-					 cdpr = pSPR->getHorProb(c1->vNoTerm[pa], c2->vNoTerm[pb]);
+					 cdpr = pSPR->getHorProb(ha, hb);
+					 cdpr -= (std::abs(cenDiff) / (double)sumcen);
 					 break;
 				 case Grammar::SUP:
-					 cdpr = pSPR->getSupProb(c1->vNoTerm[pa], c2->vNoTerm[pb]);
+					 cdpr = pSPR->getSupProb(ha, hb);
 					 break;
 				 case Grammar::SUB:
-					 cdpr = pSPR->getSubProb(c1->vNoTerm[pa], c2->vNoTerm[pb]);
+					 cdpr = pSPR->getSubProb(ha, hb);
 					 break;
 				 case Grammar::V:
 				 case Grammar::VE:
-					 cdpr = pSPR->getVerProb(c1->vNoTerm[pa], c2->vNoTerm[pb]);
+					 cdpr = pSPR->getVerProb(ha, hb);
 					 break;
 				 case Grammar::INS:
-					 cdpr = pSPR->getInsProb(c1->vNoTerm[pa], c2->vNoTerm[pb]);
+					 cdpr = pSPR->getInsProb(ha, hb);
 					 break;
 				 case Grammar::MRT:
-					 cdpr = pSPR->getMrtProb(c1->vNoTerm[pa], c2->vNoTerm[pb]);
+					 cdpr = pSPR->getMrtProb(ha, hb);
 					 break;
 				 case Grammar::SSE:
 					 //cdpr = pSPR->getSupProb(c1->vNoTerm[pa], c2->vNoTerm[pb]);
@@ -650,7 +661,6 @@ private:
 				 default:
 					 break;
 				 }
-				 //double cdpr = SPR.getHorProb(c1->noterm[pa], (*c2)->noterm[pb]);
 				 if (cdpr <= 0.0) continue;
 
 				 std::shared_ptr<CellCYK> pCell = fusion(M, pd, c1, pa, c2, pb, cdpr);

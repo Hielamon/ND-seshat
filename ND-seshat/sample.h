@@ -316,8 +316,8 @@ public:
 				if (i == si || i == sj)continue;
 				cv::Point stl = vSegUnits[i].ROI.tl(), sbr = vSegUnits[i].ROI.br();
 
-				if ((stl.x >= utl.x && stl.y >= utl.y && stl.x < ubr.x && stl.y < ubr.y) ||
-					(sbr.x >= utl.x && sbr.y >= utl.y && sbr.x < ubr.x && sbr.y < ubr.y))
+				/*if ((stl.x >= utl.x && stl.y >= utl.y && stl.x < ubr.x && stl.y < ubr.y) ||
+					(sbr.x >= utl.x && sbr.y >= utl.y && sbr.x < ubr.x && sbr.y < ubr.y))*/
 				{
 					cv::Rect olROI;
 					if (GetOverlapRoi(emptyROI, vSegUnits[i].ROI, olROI))

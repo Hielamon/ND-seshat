@@ -84,9 +84,6 @@ private:
 	{
 		//Set probabilities according to spatial constraints  
 
-		//Compute probabilities
-		std::vector<float> sample(NFEAT);
-
 		if (k <= 2) {
 			//Check left-to-right order constraint in Hor/Sub/Sup relationships
 			std::shared_ptr<Hypothesis> rma = rightmost(h1);
@@ -94,13 +91,12 @@ private:
 
 			if (lmb->pCInfo->box.x < rma->pCInfo->box.x || lmb->pCInfo->box.s <= rma->pCInfo->box.s)
 				return 0.0;
+		}
 
-			getFeas(rma, lmb, sample, mue->RY);
-		}
-		else
-		{
-			getFeas(h1, h2, sample, mue->RY);
-		}
+		//Compute probabilities
+		std::vector<float> sample(NFEAT);
+
+		getFeas(h1, h2, sample, mue->RY);
 
 		//Get spatial relationships probability from the model
 		model->posterior(&sample[0], &probs[0]);
