@@ -10,7 +10,7 @@
 
 #define NB 1
 
-//#define SHOW_PIPELINE
+#define SHOW_PIPELINE
 
 inline void PrintSymSeg(std::shared_ptr<Hypothesis> &H)
 {
@@ -632,29 +632,39 @@ private:
 
 				 //Custom adjustment to the probability from center 
 				 //Specially for the H¡¢SUP¡¢and SUB
-				 int cenDiff = ha->rcen - hb->lcen;
+				 int cenDiff1 = ha->rcen - hb->lcen;
+				 int cenDiff2 = (ha->pCInfo->box.t + ha->pCInfo->box.y) * 0.5 -
+					 (hb->pCInfo->box.t + hb->pCInfo->box.y) * 0.5;
+
+				 int exp1 = 6, exp2 = 2;
+
 				 int sumcen = ((ha->pCInfo->box.t - ha->pCInfo->box.y) +
 					 (hb->pCInfo->box.t - hb->pCInfo->box.y)) * 0.5;
 
-				 double cfactor = 1 - (std::abs(cenDiff) / (double)sumcen);
-				 //cfactor = std::pow( cfactor, 1);
-				 double invcfactor = 1.0 / cfactor;
-				 double cfactor2 = cfactor * cfactor;
-
-				 double cdpr = 0.0;
+				 double cdpr = 0.0, cfactor = 0.0, invcfactor = 0.0;
 				 switch (pType)
 				 {
 				 case Grammar::H:
 					 cdpr = pSPR->getHorProb(ha, hb);
-					 cdpr *= cfactor2;
+					 cfactor = 1 - (std::abs(cenDiff1) / (double)sumcen);
+					 cfactor = std::pow(cfactor, exp1);
+					 cdpr *= cfactor;
 					 break;
 				 case Grammar::SUP:
 					 cdpr = pSPR->getSupProb(ha, hb);
-					 cdpr = cenDiff > 0 ? cdpr * invcfactor : cdpr * cfactor2;
+					 cfactor = 1 - (std::abs(cenDiff2) / (double)sumcen);
+					 if (pd->sB == "Digit")exp2 += 4;
+					 cfactor = std::pow(cfactor, exp2);
+					 invcfactor = 1.0 / cfactor;
+					 cdpr = cenDiff2 > 0 ? cdpr * invcfactor : cdpr * cfactor;
 					 break;
 				 case Grammar::SUB:
 					 cdpr = pSPR->getSubProb(ha, hb);
-					 cdpr = cenDiff > 0 ? cdpr * cfactor2 : cdpr * invcfactor;
+					 cfactor = 1 - (std::abs(cenDiff2) / (double)sumcen);
+					 if (pd->sB == "Digit")exp2 += 4;
+					 cfactor = std::pow(cfactor, exp2);
+					 invcfactor = 1.0 / cfactor;
+					 cdpr = cenDiff2 > 0 ? cdpr * cfactor : cdpr * invcfactor;
 					 break;
 				 case Grammar::V:
 				 case Grammar::VE:
@@ -673,6 +683,8 @@ private:
 					 break;
 				 }
 				 if (cdpr <= 0.0) continue;
+
+				 cdpr = std::min(1.0, cdpr);
 
 				 std::shared_ptr<CellCYK> pCell = fusion(M, pd, c1, pa, c2, pb, cdpr);
 				 //CellCYK *cd = fusion(M, *it, c1->noterm[pa], (*c2)->noterm[pb], M->nStrokes(), cdpr);

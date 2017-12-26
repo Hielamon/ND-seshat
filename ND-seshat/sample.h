@@ -99,6 +99,8 @@ public:
 				vSegUnits.push_back(seg);
 			}
 		}
+
+		vSegUnits.assign(vSegUnits.begin() + 8, vSegUnits.end());
 	}
 
 	void ShowSample(const std::string &windowName = "Sample")
