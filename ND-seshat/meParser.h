@@ -10,7 +10,7 @@
 
 #define NB 1
 
-#define SHOW_PIPELINE
+//#define SHOW_PIPELINE
 
 inline void PrintSymSeg(std::shared_ptr<Hypothesis> &H)
 {
@@ -126,7 +126,7 @@ inline void PrintLatexToString(std::shared_ptr<Hypothesis> &H, std::shared_ptr<G
 				}
 				i += 2;
 
-				PrintLatex(H->hright, pG);
+				PrintLatexToString(H->hright, pG, result);
 				if (H->hright->clase < 0)
 
 					while (outStr[i] != '$' || outStr[i + 1] != '1')
@@ -136,7 +136,7 @@ inline void PrintLatexToString(std::shared_ptr<Hypothesis> &H, std::shared_ptr<G
 					}
 				i += 2;
 
-				PrintLatex(H->hleft, pG);
+				PrintLatexToString(H->hleft, pG, result);
 			}
 			else
 			{
@@ -149,7 +149,7 @@ inline void PrintLatexToString(std::shared_ptr<Hypothesis> &H, std::shared_ptr<G
 					}
 					i += 2;
 
-					PrintLatex(H->hleft, pG);
+					PrintLatexToString(H->hleft, pG, result);
 				}
 				if (pd2 >= 0)
 				{
@@ -160,7 +160,7 @@ inline void PrintLatexToString(std::shared_ptr<Hypothesis> &H, std::shared_ptr<G
 					}
 					i += 2;
 
-					PrintLatex(H->hright, pG);
+					PrintLatexToString(H->hright, pG, result);
 				}
 			}
 
@@ -220,7 +220,7 @@ public:
 		pGMM = pGMM_;
 	}
 
-	void parse(std::shared_ptr<Sample> &M)
+	std::string parse(std::shared_ptr<Sample> &M)
 	{
 		//Compute the normalized size of a symbol for sample M
 		M->detRefSymbol();
@@ -426,8 +426,14 @@ public:
 		std::cout << std::endl;
 
 		std::cout << "Latex : " << std::endl;
-		PrintLatex(mlh, pG);
-		std::cout << std::endl;
+		//PrintLatex(mlh, pG);
+		//std::cout << std::endl;
+		std::string latexStr;
+		std::stringstream ioStr;
+		PrintLatexToString(mlh, pG, ioStr);
+		latexStr = ioStr.str();
+		std::cout << latexStr << std::endl;
+		return latexStr;
 	}
 
 	std::shared_ptr<SymSet> pSymSet;
@@ -564,7 +570,7 @@ private:
 
 		 //Compute the (log)probability
 		 //prob = pbfactor * pd->prior + rfactor * log(prob * grpen) + A->pr + B->pr;
-		 prob = pbfactor *pd->prior + rfactor * log( prob * grpen) + A->pr + B->pr;
+		 prob = pbfactor *pd->prior + rfactor * log(prob * grpen) + A->pr + B->pr;
 
 		 //Copute resulting region
 		 pCS->pCInfo->box.x = std::min(pCA->pCInfo->box.x, pCB->pCInfo->box.x);
@@ -622,28 +628,33 @@ private:
 			 int pb = pd->B;
 
 			 if (c1->vNoTerm[pa].use_count() && c2->vNoTerm[pb].use_count()) {
-
 				 std::shared_ptr<Hypothesis> &ha = c1->vNoTerm[pa], hb = c2->vNoTerm[pb];
 
 				 //Custom adjustment to the probability from center 
 				 //Specially for the H¡¢SUP¡¢and SUB
-				 double customPenalty = 0.0;
 				 int cenDiff = ha->rcen - hb->lcen;
 				 int sumcen = ((ha->pCInfo->box.t - ha->pCInfo->box.y) +
 					 (hb->pCInfo->box.t - hb->pCInfo->box.y)) * 0.5;
+
+				 double cfactor = 1 - (std::abs(cenDiff) / (double)sumcen);
+				 //cfactor = std::pow( cfactor, 1);
+				 double invcfactor = 1.0 / cfactor;
+				 double cfactor2 = cfactor * cfactor;
 
 				 double cdpr = 0.0;
 				 switch (pType)
 				 {
 				 case Grammar::H:
 					 cdpr = pSPR->getHorProb(ha, hb);
-					 cdpr -= (std::abs(cenDiff) / (double)sumcen);
+					 cdpr *= cfactor2;
 					 break;
 				 case Grammar::SUP:
 					 cdpr = pSPR->getSupProb(ha, hb);
+					 cdpr = cenDiff > 0 ? cdpr * invcfactor : cdpr * cfactor2;
 					 break;
 				 case Grammar::SUB:
 					 cdpr = pSPR->getSubProb(ha, hb);
+					 cdpr = cenDiff > 0 ? cdpr * cfactor2 : cdpr * invcfactor;
 					 break;
 				 case Grammar::V:
 				 case Grammar::VE:
