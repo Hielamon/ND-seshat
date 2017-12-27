@@ -100,7 +100,7 @@ public:
 			}
 		}
 
-		vSegUnits.assign(vSegUnits.begin() + 5, vSegUnits.begin() + 7);
+		//vSegUnits.assign(vSegUnits.begin() + 5, vSegUnits.begin() + 7);
 	}
 
 	void ShowSample(const std::string &windowName = "Sample")
