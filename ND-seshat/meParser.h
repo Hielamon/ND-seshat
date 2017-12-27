@@ -641,7 +641,6 @@ private:
 				 int cenDiff2 = ha->rcen -
 					 (hb->pCInfo->box.t + hb->pCInfo->box.y) * 0.5;
 
-				 int exp1 = 3, exp2 = 2, expAddDigit = 4;
 				 double hshift = 0.1, sshift = 0.1, sext = 0.05;
 				 int hw = 10, sw = 10, swext = 20;
 
@@ -656,7 +655,7 @@ private:
 					 //cdpr = pSPR->getHorProb(ha, hb);
 					 cdpr = 1;
 					 cfactor = (std::abs(cenDiff1) / (double)sumcen);
-					 cfactor = 1 / (1 + exp(cfactor - hshift) * hw);
+					 cfactor = 1 / (1 + exp((cfactor - hshift) * hw));
 					 cdpr *= cfactor;
 					 break;
 				 case Grammar::SUP:
@@ -665,11 +664,11 @@ private:
 					 cfactor = cenDiff2 / (double)sumcen;
 					 if (pd->sB == "Digit")
 					 {
-						 cfactor = 1 / (1 + exp(-cfactor + sext) * swext);
+						 cfactor = 1 / (1 + exp((-cfactor + sext) * swext));
 					 }
 					 else
 					 {
-						 cfactor = 1 / (1 + exp(-cfactor + sshift) * sw);
+						 cfactor = 1 / (1 + exp((-cfactor + sshift) * sw));
 					 }
 					 cdpr *= cfactor;
 					 break;
