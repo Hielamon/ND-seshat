@@ -641,38 +641,51 @@ private:
 				 int cenDiff2 = ha->rcen -
 					 (hb->pCInfo->box.t + hb->pCInfo->box.y) * 0.5;
 
-				 int exp1 = 3, exp2 = 2, expAddDigit = 8;
+				 int exp1 = 3, exp2 = 2, expAddDigit = 4;
+				 double hshift = 0.1, sshift = 0.1, sext = 0.05;
+				 int hw = 10, sw = 10, swext = 20;
 
 				 int sumcen = ((ha->pCInfo->box.t - ha->pCInfo->box.y) +
 					 (hb->pCInfo->box.t - hb->pCInfo->box.y)) * 0.5;
 
 				 double cdpr = 0.0, cfactor = 0.0, invcfactor = 0.0;
-				 
+
 				 switch (pType)
 				 {
 				 case Grammar::H:
-					 cdpr = pSPR->getHorProb(ha, hb);
-					 cfactor = std::max(1 - (std::abs(cenDiff1) / (double)sumcen), 0.0);
-					 cfactor = std::pow(cfactor, exp1);
+					 //cdpr = pSPR->getHorProb(ha, hb);
+					 cdpr = 1;
+					 cfactor = (std::abs(cenDiff1) / (double)sumcen);
+					 cfactor = 1 / (1 + exp(cfactor - hshift) * hw);
 					 cdpr *= cfactor;
 					 break;
 				 case Grammar::SUP:
-					 cdpr = pSPR->getSupProb(ha, hb);
-					 cfactor = std::max(1 - (std::abs(cenDiff2) / (double)sumcen), 0.0001);
-					 if (pd->sB == "Digit")exp2 += expAddDigit;
-					 cfactor = std::pow(cfactor, exp2);
-					 invcfactor = 1.0 / cfactor;
-					 cdpr = cenDiff2 > 0 ? cdpr * invcfactor : cdpr * cfactor;
-					 cdpr = std::min(4.0, cdpr);
+					 //cdpr = pSPR->getSupProb(ha, hb);
+					 cdpr = 1;
+					 cfactor = cenDiff2 / (double)sumcen;
+					 if (pd->sB == "Digit")
+					 {
+						 cfactor = 1 / (1 + exp(-cfactor + sext) * swext);
+					 }
+					 else
+					 {
+						 cfactor = 1 / (1 + exp(-cfactor + sshift) * sw);
+					 }
+					 cdpr *= cfactor;
 					 break;
 				 case Grammar::SUB:
-					 cdpr = pSPR->getSubProb(ha, hb);
-					 cfactor = std::max(1 - (std::abs(cenDiff2) / (double)sumcen), 0.0001);
-					 if (pd->sB == "Digit")exp2 += expAddDigit;
-					 cfactor = std::pow(cfactor, exp2);
-					 invcfactor = 1.0 / cfactor;
-					 cdpr = cenDiff2 > 0 ? cdpr * cfactor : cdpr * invcfactor;
-					 cdpr = std::min(4.0, cdpr);
+					 //cdpr = pSPR->getSubProb(ha, hb);
+					 cdpr = 1;
+					 cfactor = -cenDiff2 / (double)sumcen;
+					 if (pd->sB == "Digit")
+					 {
+						 cfactor = 1 / (1 + exp(-cfactor + sext) * swext);
+					 }
+					 else
+					 {
+						 cfactor = 1 / (1 + exp(-cfactor + sshift) * sw);
+					 }
+					 cdpr *= cfactor;
 					 break;
 				 case Grammar::V:
 				 case Grammar::VE:
