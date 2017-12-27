@@ -87,9 +87,11 @@ public:
 		int pcomps = 0;
 
 		for (int i = 0; i < pCell->pCInfo->segN; i++)
+		{
 			if (pCell->pCInfo->segMask[i])
 				pcomps++;
-
+		}
+		
 		if (pcomps > pm_comps || (pcomps == pm_comps && pCell->vNoTerm[HIndex]->pr > Target->pr)) {
 			pm_comps = pcomps;
 			Target = pCell->vNoTerm[HIndex];

@@ -100,7 +100,7 @@ public:
 			}
 		}
 
-		vSegUnits.assign(vSegUnits.begin() + 8, vSegUnits.end());
+		//vSegUnits.assign(vSegUnits.begin() + 4, vSegUnits.end());
 	}
 
 	void ShowSample(const std::string &windowName = "Sample")
@@ -235,6 +235,7 @@ public:
 		float asc_ = 0, des_ = 0;
 		float wasc = 0.1, wdes = 1.9;
 		float paso = 1.8 / curSeg.ROI.height;
+		float sumasc = 0, sumdes = 0;
 
 		for (size_t i = 0; i < curSeg.ROI.height; i++)
 		{
@@ -244,9 +245,13 @@ public:
 				if (pSegRow[j] > 100)
 				{
 					int y = i + curSeg.ROI.y;
-					n++;
+					sumasc += wasc;
 					asc_ += y*wasc;
+
+					n++;
 					cmy += y;
+
+					sumdes += wdes;
 					des_ += y*wdes;
 				}
 			}
@@ -255,16 +260,15 @@ public:
 			wdes -= paso;
 		}
 
-		asc = asc_ / n;
+		asc = asc_ / sumasc;
 		cmy = cmy / n;
-		des = des_ / n;
+		des = des_ / sumdes;
 	}
 
 	SegUnit &getSegUnit(int segIdx)
 	{
 		return vSegUnits[segIdx];
 	}
-
 
 
 	cv::Mat getRGBImg()
