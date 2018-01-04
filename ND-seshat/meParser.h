@@ -193,6 +193,11 @@ inline void drawCellWithColor(cv::Mat &src, std::shared_ptr<CellCYK> &pCell, cv:
 	cv::rectangle(src, roi, color, 3);
 }
 
+inline bool isDigit(std::shared_ptr<Hypothesis> &H)
+{
+	return H->clase >= 3 && H->clase <= 11;
+}
+
 class MeParser
 {
 public:
@@ -201,10 +206,14 @@ public:
 			 const std::shared_ptr<GMM> &pGMM_)
 		: pSymSet(pSymSet_), pG(pG_), pGMM(pGMM_) 
 	{
-		clusterF = 0.15680604;
-		ptfactor = 0.37846575;
-		pbfactor = 0.14864657;
-		rfactor = 0.63225349;
+		//clusterF = 0.15680604;
+		clusterF = 1;
+		//ptfactor = 0.37846575;
+		ptfactor = 0.0;
+		//pbfactor = 0.14864657;
+		pbfactor = 0.0;
+		//rfactor = 0.63225349;
+		rfactor = 1.0;
 		qfactor = 1.88593577;
 		InsPen = 2.11917745;
 	}
@@ -319,8 +328,8 @@ public:
 #ifdef SHOW_PIPELINE
 						drawCell(tmpImg2, *c2);
 #endif // SHOW_PIPELINE
-						traverseProductionB(c1, *c2, M, tcyk, talla, pG->prodsV, Grammar::V);
-						traverseProductionB(c1, *c2, M, tcyk, talla, pG->prodsVe, Grammar::VE);
+						traverseProductionB(*c2, c1, M, tcyk, talla, pG->prodsV, Grammar::V);
+						traverseProductionB(*c2, c1, M, tcyk, talla, pG->prodsVe, Grammar::VE);
 					}
 #ifdef SHOW_PIPELINE
 					cv::imshow("c1setU traverse", tmpImg2);
@@ -354,6 +363,8 @@ public:
 					cv::imshow("c1setM traverse", tmpImg2);
 					cv::moveWindow("c1setM traverse", winx, winy);
 					cv::waitKey(time);
+
+					tmpImg2 = tmpImg1.clone();
 #endif // SHOW_PIPELINE
 
 					//Look for combining {x_subs} y {x^sups} in {x_subs^sups}
@@ -368,6 +379,10 @@ public:
 							for (auto c2 = c1setS.begin(); c2 != c1setS.end(); c2++) {
 
 								if ((*c2)->pCInfo->box.x == c1->pCInfo->box.x && c1 != *c2) {
+
+#ifdef SHOW_PIPELINE
+									drawCell(tmpImg2, *c2);
+#endif // SHOW_PIPELINE
 
 									traverseProductionSSE(c1, *c2, M, tcyk, talla, pG->prodsSSE);
 								}
@@ -402,6 +417,7 @@ public:
 				cv::imshow("talla" + ioStr.str(), tmpImg1);
 				cv::moveWindow("talla" + ioStr.str(), winx, winy);
 				cv::waitKey(time);
+				//cv::destroyAllWindows();
 #endif // SHOW_PIPELINE
 			}
 
@@ -552,7 +568,7 @@ private:
 				 return pCS;
 
 			 //Compute penalty
-			 grpen = std::max(-0.999999f, grpen);
+			 grpen = std::max(-0.9f, grpen);
 			 grpen = 1.0 / (1.0 + grpen);
 			 grpen = pow(grpen, clusterF);
 			 //grpen = 1 * grpen;
@@ -627,68 +643,131 @@ private:
 			 int pa = pd->A;
 			 int pb = pd->B;
 
+
 			 if (c1->vNoTerm[pa].use_count() && c2->vNoTerm[pb].use_count()) {
 				 std::shared_ptr<Hypothesis> &ha = c1->vNoTerm[pa], hb = c2->vNoTerm[pb];
+				 bool haDigit = isDigit(ha), hbDigit = isDigit(hb);
 
 				 //Custom adjustment to the probability from center 
 				 //Specially for the H¡¢SUP¡¢and SUB
-				 /*int cen1 = (ha->pCInfo->box.t + ha->pCInfo->box.y) * 0.5;
-				 int cen2 = (hb->pCInfo->box.t + hb->pCInfo->box.y) * 0.5;
-				 int cenDiff = cen1 - cen2;*/
+				 coo &abox = ha->pCInfo->box, &bbox = hb->pCInfo->box;
+				 int aheight = abox.t - abox.y, bheight = bbox.t - bbox.y;
+
+				 //for H
 				 int cenDiff1 = ha->rcen - hb->lcen;
-				 /*int cenDiff2 = (ha->pCInfo->box.t + ha->pCInfo->box.y) * 0.5 -
-				 (hb->pCInfo->box.t + hb->pCInfo->box.y) * 0.5;*/
-				 int cenDiff2 = ha->rcen -
-					 (hb->pCInfo->box.t + hb->pCInfo->box.y) * 0.5;
+				 double hshift = 0.3, hsdd = 0.4;
+				 int hw = 10, hwdd = 8;
 
-				 double hshift = 0.1, sshift = 0.1, sext = 0.05;
-				 int hw = 10, sw = 10, swext = 20;
+				 //for SUB and SUP
+				 int hbboxcen = (bbox.t + bbox.y) * 0.5;
+				 //int hbleftcen = hbboxcen;
+				 int hbleftcen = pType == Grammar::PBTYPE::SUB ? std::min(hb->lcen, hbboxcen) : std::max(hb->lcen, hbboxcen);
+				 int cenDiff2 = ha->rcen - hbleftcen;
 
+				 double sshift = 0.3, sext = 0.05, ssdd = 0.5;
+				 int sw = 10, swext = 30, swdd = 8;
+				 
+				 int tDiff = bbox.t - abox.t;
+				 int yDiff = bbox.y - abox.y;
+				 double whR = std::min((bbox.s - bbox.x) / double((bbox.t - bbox.y)), 2.0) / 2.0;
+				 double whR2 = std::min(std::max(0.1, std::sqrt(whR)), 0.2);
+				 double minshiftR = 0.20 - std::sqrt(whR) * 0.05;
+
+				 //common used for H, SUP, SUB
 				 int sumcen = ((ha->pCInfo->box.t - ha->pCInfo->box.y) +
 					 (hb->pCInfo->box.t - hb->pCInfo->box.y)) * 0.5;
 
-				 double cdpr = 0.0, cfactor = 0.0, invcfactor = 0.0;
+
+				 double cdpr = 0.0, maxcdpr = 0.91, cfactor = 0.0;
 
 				 switch (pType)
 				 {
 				 case Grammar::H:
-					 //cdpr = pSPR->getHorProb(ha, hb);
-					 cdpr = 1;
+					 cdpr = pSPR->getHorProb(ha, hb);
+					 //cdpr = 1;
 					 cfactor = (std::abs(cenDiff1) / (double)sumcen);
-					 cfactor = 1 / (1 + exp((cfactor - hshift) * hw));
+
+					 if (haDigit && hbDigit)
+					 {
+						 cfactor = 1 / (1 + exp((cfactor - hsdd) * hwdd));
+					 }
+					 else
+					 {
+						 cfactor = 1 / (1 + exp((cfactor - hshift) * hw));
+					 }
+					 
 					 cdpr *= cfactor;
+					 cdpr = std::min(maxcdpr, cdpr);
 					 break;
 				 case Grammar::SUP:
-					 //cdpr = pSPR->getSupProb(ha, hb);
-					 cdpr = 1;
-					 cfactor = cenDiff2 / (double)sumcen;
-					 if (pd->sB == "Digit")
+					 
+					 //cdpr = 1;
+					 yDiff = yDiff < 0 ? yDiff : 0;
+
+					 if (haDigit)
 					 {
-						 cfactor = 1 / (1 + exp((-cfactor + sext) * swext));
+						 cfactor = cenDiff2 / (double)sumcen - yDiff * 0.2 / double(bheight);
+
+						 if (-tDiff < 2 * minshiftR * aheight)break;
+						 cfactor = 1 / (1 + exp((-cfactor + ssdd) * swdd));
 					 }
 					 else
 					 {
-						 cfactor = 1 / (1 + exp((-cfactor + sshift) * sw));
+						 cfactor = cenDiff2 / (double)sumcen - yDiff * whR2 / double(bheight);
+
+						 if (hbDigit)
+						 {
+							 if (-tDiff < 0.1 * minshiftR * aheight)break;
+							 cfactor = 1 / (1 + exp((-cfactor + sext) * swext));
+						 }
+						 else
+						 {
+							 float extshiftR = std::max(0.1f, (1 + yDiff / float(aheight)));
+							 if (-tDiff < 1 * minshiftR * extshiftR * aheight)break;
+							 cfactor = 1 / (1 + exp((-cfactor + sshift) * sw));
+						 }
 					 }
+					 
+					 cdpr = pSPR->getSupProb(ha, hb);
 					 cdpr *= cfactor;
+					 cdpr = std::min(maxcdpr, cdpr);
 					 break;
 				 case Grammar::SUB:
-					 //cdpr = pSPR->getSubProb(ha, hb);
-					 cdpr = 1;
-					 cfactor = -cenDiff2 / (double)sumcen;
-					 if (pd->sB == "Digit")
+					 //cdpr = 1;
+					 tDiff = tDiff > 0 ? tDiff : 0;
+					 if (haDigit)
 					 {
-						 cfactor = 1 / (1 + exp(-cfactor + sext) * swext);
+						 cfactor = -cenDiff2 / (double)sumcen + tDiff * 0.1 / double(bheight);
+
+						 if (yDiff < 2.0 * minshiftR * aheight)break;
+						 cfactor = 1 / (1 + exp((-cfactor + ssdd) * swdd));
 					 }
 					 else
 					 {
-						 cfactor = 1 / (1 + exp(-cfactor + sshift) * sw);
+						 cfactor = -cenDiff2 / (double)sumcen + tDiff * whR2 / double(bheight);
+
+						 if (hbDigit)
+						 {
+							 if (yDiff < 0.1 * minshiftR * aheight)break;
+							 cfactor = 1 / (1 + exp((-cfactor + sext) * swext));
+						 }
+						 else
+						 {
+							 float extshiftR = std::max(0.1f, (1 - tDiff / float(aheight)));
+							 if (yDiff < 1.0 * minshiftR * extshiftR * aheight)break;
+							 cfactor = 1 / (1 + exp((-cfactor + sshift) * sw));
+						 }
 					 }
+					
+					 cdpr = pSPR->getSubProb(ha, hb);
 					 cdpr *= cfactor;
+					 cdpr = std::min(maxcdpr, cdpr);
 					 break;
 				 case Grammar::V:
-				 case Grammar::VE:
 					 cdpr = pSPR->getVerProb(ha, hb);
+					 break;
+				 case Grammar::VE:
+					 cdpr = pSPR->getVerProb(ha, hb, true);
 					 break;
 				 case Grammar::INS:
 					 cdpr = pSPR->getInsProb(ha, hb);

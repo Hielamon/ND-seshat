@@ -17,6 +17,11 @@ struct SegUnit
 	std::string symStr;
 };
 
+inline int computeRectArea(cv::Rect r)
+{
+	return (r.width > 0 && r.height > 0) ? r.width * r.height : std::max(r.width, r.height);
+}
+
 //The Class include the Handwritten formula image
 //and the symbol recognition result
 class Sample
@@ -100,7 +105,7 @@ public:
 			}
 		}
 
-		//vSegUnits.assign(vSegUnits.begin() + 5, vSegUnits.begin() + 7);
+		//vSegUnits.assign(vSegUnits.begin() + 0, vSegUnits.begin() + 5);
 	}
 
 	void ShowSample(const std::string &windowName = "Sample")
@@ -208,6 +213,17 @@ public:
 		}
 	}
 
+	std::vector<int> computeRowPeek()
+	{
+		if (Img.empty())
+			HL_CERR("There is not a image loaded");
+
+		std::vector<float> vRawWeight(H, 0.0);
+
+		
+	}
+
+
 	int getSegUnitSize()
 	{
 		return vSegUnits.size();
@@ -278,7 +294,7 @@ public:
 		return result;
 	}
 
-	float segDistance(int si, int sj) {
+	float segDistanceOld(int si, int sj) {
 		
 		cv::Rect &segIROI = vSegUnits[si].ROI, &segJROI = vSegUnits[sj].ROI;
 
@@ -344,6 +360,94 @@ public:
 		return dist;
 	}
 
+	float segDistance(int si, int sj) {
+
+		cv::Rect &segIROI = vSegUnits[si].ROI, &segJROI = vSegUnits[sj].ROI;
+
+		cv::Point tl, br;
+		cv::Point bri = segIROI.br(), brj = segJROI.br();
+		tl.x = segIROI.x > segJROI.x ? segIROI.x : segJROI.x;
+		tl.y = segIROI.y > segJROI.y ? segIROI.y : segJROI.y;
+		br.x = bri.x < brj.x ? bri.x : brj.x;
+		br.y = bri.y < brj.y ? bri.y : brj.y;
+
+		float dist = FLT_MAX;
+
+		if (tl.x <= br.x && tl.y <= br.y)
+		{
+			//The overlap is valid
+			//dist = -std::sqrt((br.x - tl.x)*(br.y - tl.y));
+			dist = 0;
+		}
+		else
+		{
+			//When the overlap is invalid, get the min distance of two box
+			cv::Point cenPti((bri.x + segIROI.x)*0.5, (bri.y + segIROI.y)*0.5);
+			cv::Point cenPtj((brj.x + segJROI.x)*0.5, (brj.y + segJROI.y)*0.5);
+			cv::Point vcenIJ = cenPti - cenPtj;
+			float cw = std::abs(vcenIJ.x), ch = std::abs(vcenIJ.y);
+			float cenDist = std::sqrt(cw*cw + ch*ch);
+
+			float k = ch / cw;
+			float cutRatioI = (k * segIROI.width) < segIROI.height ? (segIROI.width * 0.5) / cw : (segIROI.height * 0.5) / ch;
+			float cutRatioJ = (k * segJROI.width) < segJROI.height ? (segJROI.width * 0.5) / cw : (segJROI.height * 0.5) / ch;
+
+			dist = (1.0 - cutRatioI - cutRatioJ) * cenDist;
+
+			//Check the visible if the overlap is invalid
+
+			//Get Union ROI
+			cv::Point utl, ubr;
+			cv::Rect uROI = GetUnionRoi(segIROI, segJROI);
+			utl = uROI.tl();
+			ubr = uROI.br();
+
+			cv::Rect emptyROI;
+			emptyROI.x = tl.x < br.x ? tl.x : br.x;
+			emptyROI.y = tl.y < br.y ? tl.y : br.y;
+			emptyROI.width = std::abs(tl.x - br.x);
+			emptyROI.height = std::abs(tl.y - br.y);
+
+			bool checkXSpace = tl.x > br.x, checkYSpace = tl.y > br.y;
+			for (size_t i = 0; i < vSegUnits.size(); i++)
+			{
+				if (i == si || i == sj)continue;
+				cv::Point stl = vSegUnits[i].ROI.tl(), sbr = vSegUnits[i].ROI.br();
+
+				bool isInXSpace = checkXSpace &&
+					((stl.x >= emptyROI.x && stl.x <= emptyROI.br().x) /*||
+					(sbr.x >= emptyROI.x && sbr.x <= emptyROI.br().x)*/
+					 );
+				bool isInYSpace = checkYSpace && 
+					((stl.y >= emptyROI.y && stl.y <= emptyROI.br().y) /*||
+					(sbr.y >= emptyROI.y && sbr.y <= emptyROI.br().y)*/
+					 );
+
+				/*if ((stl.x >= utl.x && stl.y >= utl.y && stl.x < ubr.x && stl.y < ubr.y) &&
+					(sbr.x >= utl.x && sbr.y >= utl.y && sbr.x < ubr.x && sbr.y < ubr.y))*/
+				if (isInXSpace || isInYSpace)
+				{
+					cv::Rect olROI;
+					if (GetOverlapRoi(emptyROI, vSegUnits[i].ROI, olROI))
+					{
+						float olArea = computeRectArea(olROI);
+						float emptyArea = computeRectArea(emptyROI);
+						float r = std::sqrt(olArea / (emptyArea + 0.000001));
+						if (r > 0.05)
+						{
+							//invisible dist
+							dist = FLT_MAX;
+							break;
+						}
+					}
+				}
+				
+			}
+
+		}
+		return dist;
+	}
+
 	float getDist(int si, int sj) {
 		if (si<0 || sj<0 || si >= vvSegDist.size() || sj >= vvSegDist[si].size()) 
 			HL_CERR("ERROR: segment id out of range in getDist(" << si << ", " << sj << ")");
@@ -370,6 +474,7 @@ public:
 
 		return dmin;
 	}
+
 
 	//Normalized reference symbol size
 	int RX, RY;

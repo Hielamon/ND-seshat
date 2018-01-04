@@ -1,5 +1,5 @@
 102
-! n
+! a
 + n
 - n
 0 m
@@ -63,8 +63,8 @@ Y m
 \tg n
 \theta n
 \times n
-a n
-b a
+a m
+b n
 c n
 comma n
 d a
@@ -73,10 +73,10 @@ dot n
 dots n
 e n
 equal n
-f a
+f d
 g d
 h a
-i n
+i m
 j d
 k n
 l a
@@ -86,17 +86,17 @@ lpar m
 m n
 n n
 o n
-p d
-q d
+p n
+q n
 r n
 rbrace n
 rbracket n
 rpar m
 s n
 t a
-u n
-v n
-w n
+u m
+v d
+w d
 x n
 y d
 z n

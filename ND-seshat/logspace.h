@@ -213,8 +213,9 @@ public:
 		//Set the region to search
 		sx = pCell->pCInfo->box.x + 1;  // (sx,sy)------
 		ss = pCell->pCInfo->box.s + RX; //  ------------
+		//ss = pCell->pCInfo->box.s + 1; //  ------------
 		sy = pCell->pCInfo->box.y + 1;  //  ------------
-		//sy = pCell->pCInfo->box.y - RY * 0.3;  //  ------------
+		//sy = pCell->pCInfo->box.y - 2*RY;  //  ------------
 		st = pCell->pCInfo->box.t + RY; //  ------(ss,st)
 
 						//Retrieve the regions

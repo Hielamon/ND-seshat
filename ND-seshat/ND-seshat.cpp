@@ -57,6 +57,6 @@ int main(int argc, char *argv[])
 	
 	meparser.parse(sample);
 
-	sample->ShowSample();
+	sample->ShowSample("SampleDebug");
 	return 0;
 }

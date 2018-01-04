@@ -89,8 +89,16 @@ private:
 			std::shared_ptr<Hypothesis> rma = rightmost(h1);
 			std::shared_ptr<Hypothesis> lmb = leftmost(h2);
 
-			if (lmb->pCInfo->box.x < rma->pCInfo->box.x || lmb->pCInfo->box.s <= rma->pCInfo->box.s)
+			int rmaw = rma->pCInfo->box.s - rma->pCInfo->box.x;
+			int lmbw = lmb->pCInfo->box.s - lmb->pCInfo->box.x;
+			//int minshift = 0;
+			int rminshift = rmaw * 0.2;
+			int lminshift = lmbw * 0.2;
+
+			if (lmb->pCInfo->box.x < rma->pCInfo->box.x + rminshift || lmb->pCInfo->box.s + lminshift <= rma->pCInfo->box.s)
 				return 0.0;
+
+			return 1.0;
 		}
 
 		//Compute probabilities
@@ -175,7 +183,7 @@ public:
 	{
 		int sqrtH = hb->pCInfo->box.t - hb->pCInfo->box.y;
 
-		if (solape(hb, ha) < 0.5 ||
+		if (solape(hb, ha) < 0.4 ||
 			hb->pCInfo->box.x < ha->pCInfo->box.x || hb->pCInfo->box.y < (ha->pCInfo->box.y - sqrtH*0.3))
 			return 0.0;
 
