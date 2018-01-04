@@ -646,122 +646,19 @@ private:
 
 			 if (c1->vNoTerm[pa].use_count() && c2->vNoTerm[pb].use_count()) {
 				 std::shared_ptr<Hypothesis> &ha = c1->vNoTerm[pa], hb = c2->vNoTerm[pb];
-				 bool haDigit = isDigit(ha), hbDigit = isDigit(hb);
 
-				 //Custom adjustment to the probability from center 
-				 //Specially for the H¡¢SUP¡¢and SUB
-				 coo &abox = ha->pCInfo->box, &bbox = hb->pCInfo->box;
-				 int aheight = abox.t - abox.y, bheight = bbox.t - bbox.y;
-
-				 //for H
-				 int cenDiff1 = ha->rcen - hb->lcen;
-				 double hshift = 0.3, hsdd = 0.4;
-				 int hw = 10, hwdd = 8;
-
-				 //for SUB and SUP
-				 int hbboxcen = (bbox.t + bbox.y) * 0.5;
-				 //int hbleftcen = hbboxcen;
-				 int hbleftcen = pType == Grammar::PBTYPE::SUB ? std::min(hb->lcen, hbboxcen) : std::max(hb->lcen, hbboxcen);
-				 int cenDiff2 = ha->rcen - hbleftcen;
-
-				 double sshift = 0.3, sext = 0.05, ssdd = 0.5;
-				 int sw = 10, swext = 30, swdd = 8;
-				 
-				 int tDiff = bbox.t - abox.t;
-				 int yDiff = bbox.y - abox.y;
-				 double whR = std::min((bbox.s - bbox.x) / double((bbox.t - bbox.y)), 2.0) / 2.0;
-				 double whR2 = std::min(std::max(0.1, std::sqrt(whR)), 0.2);
-				 double minshiftR = 0.20 - std::sqrt(whR) * 0.05;
-
-				 //common used for H, SUP, SUB
-				 int sumcen = ((ha->pCInfo->box.t - ha->pCInfo->box.y) +
-					 (hb->pCInfo->box.t - hb->pCInfo->box.y)) * 0.5;
-
-
-				 double cdpr = 0.0, maxcdpr = 0.91, cfactor = 0.0;
+				 double cdpr = 0.0;
 
 				 switch (pType)
 				 {
 				 case Grammar::H:
 					 cdpr = pSPR->getHorProb(ha, hb);
-					 //cdpr = 1;
-					 cfactor = (std::abs(cenDiff1) / (double)sumcen);
-
-					 if (haDigit && hbDigit)
-					 {
-						 cfactor = 1 / (1 + exp((cfactor - hsdd) * hwdd));
-					 }
-					 else
-					 {
-						 cfactor = 1 / (1 + exp((cfactor - hshift) * hw));
-					 }
-					 
-					 cdpr *= cfactor;
-					 cdpr = std::min(maxcdpr, cdpr);
 					 break;
 				 case Grammar::SUP:
-					 
-					 //cdpr = 1;
-					 yDiff = yDiff < 0 ? yDiff : 0;
-
-					 if (haDigit)
-					 {
-						 cfactor = cenDiff2 / (double)sumcen - yDiff * 0.2 / double(bheight);
-
-						 if (-tDiff < 2 * minshiftR * aheight)break;
-						 cfactor = 1 / (1 + exp((-cfactor + ssdd) * swdd));
-					 }
-					 else
-					 {
-						 cfactor = cenDiff2 / (double)sumcen - yDiff * whR2 / double(bheight);
-
-						 if (hbDigit)
-						 {
-							 if (-tDiff < 0.1 * minshiftR * aheight)break;
-							 cfactor = 1 / (1 + exp((-cfactor + sext) * swext));
-						 }
-						 else
-						 {
-							 float extshiftR = std::max(0.1f, (1 + yDiff / float(aheight)));
-							 if (-tDiff < 1 * minshiftR * extshiftR * aheight)break;
-							 cfactor = 1 / (1 + exp((-cfactor + sshift) * sw));
-						 }
-					 }
-					 
 					 cdpr = pSPR->getSupProb(ha, hb);
-					 cdpr *= cfactor;
-					 cdpr = std::min(maxcdpr, cdpr);
 					 break;
 				 case Grammar::SUB:
-					 //cdpr = 1;
-					 tDiff = tDiff > 0 ? tDiff : 0;
-					 if (haDigit)
-					 {
-						 cfactor = -cenDiff2 / (double)sumcen + tDiff * 0.1 / double(bheight);
-
-						 if (yDiff < 2.0 * minshiftR * aheight)break;
-						 cfactor = 1 / (1 + exp((-cfactor + ssdd) * swdd));
-					 }
-					 else
-					 {
-						 cfactor = -cenDiff2 / (double)sumcen + tDiff * whR2 / double(bheight);
-
-						 if (hbDigit)
-						 {
-							 if (yDiff < 0.1 * minshiftR * aheight)break;
-							 cfactor = 1 / (1 + exp((-cfactor + sext) * swext));
-						 }
-						 else
-						 {
-							 float extshiftR = std::max(0.1f, (1 - tDiff / float(aheight)));
-							 if (yDiff < 1.0 * minshiftR * extshiftR * aheight)break;
-							 cfactor = 1 / (1 + exp((-cfactor + sshift) * sw));
-						 }
-					 }
-					
 					 cdpr = pSPR->getSubProb(ha, hb);
-					 cdpr *= cfactor;
-					 cdpr = std::min(maxcdpr, cdpr);
 					 break;
 				 case Grammar::V:
 					 cdpr = pSPR->getVerProb(ha, hb);
@@ -784,7 +681,6 @@ private:
 				 if (cdpr <= 0.0) continue;
 
 				 std::shared_ptr<CellCYK> pCell = fusion(M, pd, c1, pa, c2, pb, cdpr);
-				 //CellCYK *cd = fusion(M, *it, c1->noterm[pa], (*c2)->noterm[pb], M->nStrokes(), cdpr);
 
 				 if (!pCell.use_count()) continue;
 

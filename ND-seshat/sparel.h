@@ -70,6 +70,28 @@ inline float solape(std::shared_ptr<Hypothesis> &a, std::shared_ptr<Hypothesis> 
 	return 0.0;
 }
 
+inline bool checkLeftRight(std::shared_ptr<Hypothesis> &h1, std::shared_ptr<Hypothesis> &h2)
+{
+	//Check left-to-right order constraint in Hor/Sub/Sup relationships
+	std::shared_ptr<Hypothesis> rma = rightmost(h1);
+	std::shared_ptr<Hypothesis> lmb = leftmost(h2);
+
+	int rmaw = rma->pCInfo->box.s - rma->pCInfo->box.x;
+	int lmbw = lmb->pCInfo->box.s - lmb->pCInfo->box.x;
+	//int minshift = 0;
+	int rminshift = rmaw * 0.2;
+	int lminshift = lmbw * 0.2;
+
+	if (lmb->pCInfo->box.x < rma->pCInfo->box.x + rminshift || lmb->pCInfo->box.s + lminshift <= rma->pCInfo->box.s)
+	{
+		return false;
+	}
+	else
+	{
+		return true;
+	}
+}
+
 class SpaRel {
 public:
 	const int NRELS = 6;
@@ -77,8 +99,10 @@ public:
 
 private:
 	std::shared_ptr<GMM> model;
-	std::shared_ptr<Sample>mue;
+	std::shared_ptr<Sample> mue;
 	std::vector<float> probs;
+
+	
 
 	double compute_prob(std::shared_ptr<Hypothesis> &h1, std::shared_ptr<Hypothesis> &h2, int k)
 	{
@@ -150,16 +174,33 @@ public:
 
 	double getHorProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
 	{
-		return compute_prob(ha, hb, 0);
+		coo &abox = ha->pCInfo->box, &bbox = hb->pCInfo->box;
+		int awidth = abox.s - abox.x, aheight = abox.t - abox.y;
+		int bwidth = bbox.s - bbox.x, bheight = bbox.t - bbox.y;
+
+		if (abox.t <= bbox.y || abox.y >= bbox.t || !checkLeftRight(ha, hb)) return 0.0;
+		
+		int cenDiff = hb->lcen - ha->rcen;
+		int tDiff = bbox.t - abox.t;
+		int yDiff = bbox.y - abox.y;
+		int xsDiff = bbox.x - abox.s;
+
+		double cenRatio = std::abs(cenDiff) / (0.5 * (aheight + bheight));
+		double cenScore = 1.0 - std::min(1.0, cenRatio);
+
+		//return compute_prob(ha, hb, 0);
 	}
+
 	double getSubProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
 	{
-		return compute_prob(ha, hb, 1);
+		//return compute_prob(ha, hb, 1);
 	}
+
 	double getSupProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
 	{
-		return compute_prob(ha, hb, 2);
+		//return compute_prob(ha, hb, 2);
 	}
+
 	double getVerProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, bool strict = false)
 	{
 		//Pruning
@@ -179,6 +220,7 @@ public:
 
 		return (1.0 - penalty) * compute_prob(ha, hb, 3);
 	}
+
 	double getInsProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
 	{
 		int sqrtH = hb->pCInfo->box.t - hb->pCInfo->box.y;
@@ -193,6 +235,7 @@ public:
 
 		return compute_prob(ha, hb, 4);
 	}
+
 	double getMrtProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
 	{
 		return compute_prob(ha, hb, 5);
