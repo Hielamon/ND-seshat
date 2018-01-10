@@ -193,11 +193,6 @@ inline void drawCellWithColor(cv::Mat &src, std::shared_ptr<CellCYK> &pCell, cv:
 	cv::rectangle(src, roi, color, 3);
 }
 
-inline bool isDigit(std::shared_ptr<Hypothesis> &H)
-{
-	return H->clase >= 3 && H->clase <= 11;
-}
-
 class MeParser
 {
 public:
@@ -472,7 +467,7 @@ private:
 	{
 		for (int i = 0; i<M->getSegUnitSize(); i++) {
 
-			int cmy, asc, des;
+			double cmy, asc, des;
 
 			std::cout << "Segment " << i << std::endl;
 
@@ -519,7 +514,8 @@ private:
 						pCell->vNoTerm[ntID]->pt = prod;
 
 						//Compute the vertical centroid according to the type of symbol
-						int cen, type = pSymSet->symType(clase[k]);
+						int type = pSymSet->symType(clase[k]);
+						double cen;
 						if (type == 0)       cen = cmy; //Normal
 						else if (type == 1) cen = asc; //Ascendant
 						else if (type == 2) cen = des; //Descendant
@@ -528,6 +524,7 @@ private:
 																	   //Vertical center
 						pCell->vNoTerm[ntID]->lcen = cen;
 						pCell->vNoTerm[ntID]->rcen = cen;
+						pCell->vNoTerm[ntID]->totalSymWidth = pCell->pCInfo->box.s - pCell->pCInfo->box.x;
 					}
 				}
 			}
@@ -567,6 +564,13 @@ private:
 			 if (grpen >= M->INF_DIST)
 				 return pCS;
 
+			 float cax = (pCA->pCInfo->box.x + pCA->pCInfo->box.s)*0.5;
+			 float cay = (pCA->pCInfo->box.y + pCA->pCInfo->box.t)*0.5;
+			 float cbx = (pCB->pCInfo->box.x + pCB->pCInfo->box.s)*0.5;
+			 float cby = (pCB->pCInfo->box.y + pCB->pCInfo->box.t)*0.5;
+
+			 grpen = std::sqrt((cbx - cax)*(cbx - cax) + (cby - cay)*(cby - cay)) / M->NORMF;
+
 			 //Compute penalty
 			 grpen = std::max(-0.9f, grpen);
 			 grpen = 1.0 / (1.0 + grpen);
@@ -577,6 +581,7 @@ private:
 
 		 //Get nonterminal
 		 int ps = pd->S;
+
 		 int N = M->getSegUnitSize();
 		 int K = pG->noTerminales.size();
 

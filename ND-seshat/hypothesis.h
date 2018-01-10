@@ -54,18 +54,16 @@ struct Hypothesis{
 	std::shared_ptr<ProductionB> prod_sse;
 
 	//Vertical center left and right
-	int lcen, rcen;
+	double lcen, rcen;
+	//the total width of all elements
+	double totalSymWidth;
 
-	//CellCYK *parent; //Parent cell
-	//int ntid;        //Nonterminal ID in parent
-
-					 //Methods
+	//Methods
 	Hypothesis(int c, double p, std::shared_ptr<CellInfo> pCInfo_)
 	{
 		pCInfo = pCInfo_;
 		clase = c;
 		pr = p;
-		//hright = hleft = NULL;
 		lcen = rcen = 0;
 	}
 	~Hypothesis() {}

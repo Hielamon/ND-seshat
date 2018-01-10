@@ -105,7 +105,7 @@ public:
 			}
 		}
 
-		//vSegUnits.assign(vSegUnits.begin() + 0, vSegUnits.begin() + 5);
+		vSegUnits.assign(vSegUnits.begin() + 3, vSegUnits.begin() + 7);
 	}
 
 	void ShowSample(const std::string &windowName = "Sample")
@@ -230,7 +230,7 @@ public:
 	}
 
 	void getSegUnitInfo(int segIdx, int NBest, std::vector<int> &vSymIdx,
-						std::vector<float> &vProb, int &cmy, int &asc, int &des)
+						std::vector<float> &vProb, double &cmy, double &asc, double &des)
 	{
 		if (NBest != 1)
 			HL_CERR("Request teh NB = 1 currently!!!");
@@ -248,10 +248,10 @@ public:
 
 		int n = 0;
 		cmy = 0;
-		float asc_ = 0, des_ = 0;
-		float wasc = 0.1, wdes = 1.9;
-		float paso = 1.8 / curSeg.ROI.height;
-		float sumasc = 0, sumdes = 0;
+		double asc_ = 0, des_ = 0;
+		double wasc = 0.1, wdes = 1.9;
+		double paso = 1.8 / curSeg.ROI.height;
+		double sumasc = 0, sumdes = 0;
 
 		for (size_t i = 0; i < curSeg.ROI.height; i++)
 		{
