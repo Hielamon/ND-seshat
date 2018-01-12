@@ -99,13 +99,32 @@ public:
 				int y = iter->second.get<int>("bndbox.ymin");
 				int s = iter->second.get<int>("bndbox.xmax");
 				int t = iter->second.get<int>("bndbox.ymax");
-				seg.ROI = cv::Rect(x, y, s - x, t - y);
+				
 
+				seg.ROI = cv::Rect(x, y, s - x, t - y);
+				
 				vSegUnits.push_back(seg);
 			}
 		}
+		std::vector<SegUnit> vSegTmp;
+		/*SegUnit seg;
+		seg.symID = 3;
+		seg.symStr = "0";
+		seg.score = 1.0;
 
-		vSegUnits.assign(vSegUnits.begin() + 3, vSegUnits.begin() + 7);
+		cv::Rect roi02 = vSegUnits[0].ROI;
+		roi02 = GetUnionRoi(roi02, vSegUnits[1].ROI);
+		roi02 = GetUnionRoi(roi02, vSegUnits[2].ROI);
+
+		seg.ROI = roi02;
+		vSegTmp.push_back(seg);*/
+		/*vSegTmp.assign(vSegUnits.begin() + 0, vSegUnits.begin() + 3);
+		vSegTmp.push_back(vSegUnits[3]);
+		vSegTmp.push_back(vSegUnits[4]);
+		vSegTmp.push_back(vSegUnits[5]);
+		
+		vSegUnits = vSegTmp;*/
+		vSegUnits.assign(vSegUnits.begin() + 7, vSegUnits.begin() + 10);
 	}
 
 	void ShowSample(const std::string &windowName = "Sample")

@@ -423,7 +423,10 @@ PBIN
 0.00025432 Sub TermSub BrTerm LetterMin "{$1}_{$2}" A
 0.00025432 Sub TermSub BrTerm LetterCap "{$1}_{$2}" A
 0.00025432 Sub TermSub BrTerm Greek "{$1}_{$2}" A
+0.00025432 Sub TermSub BrTerm Greek "{$1}_{$2}" A
+
 0.03403597 Sup TermSup Digit Digit "{$1}^{$2}" A
+0.00025432 Sub TermSub Term Sym "{$1}_{$2}" A
 
 #add by boren
 1.00000000 Sup TermSup Digit UnTerm "{$1}^{$2}" A
