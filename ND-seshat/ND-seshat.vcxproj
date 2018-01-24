@@ -170,6 +170,7 @@
   <ItemGroup>
     <None Include="Grammar\mathexp.gram" />
     <None Include="Grammar\sparels.gmm" />
+    <None Include="Grammar\symbol_nd - 副本.types" />
     <None Include="Grammar\symbol_nd.types" />
   </ItemGroup>
   <ItemGroup>

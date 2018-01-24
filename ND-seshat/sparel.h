@@ -15,8 +15,8 @@
     You should have received a copy of the GNU General Public License
     along with SESHAT.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef _SPAREL_
-#define _SPAREL_
+#pragma once
+
 
 class CellCYK;
 
@@ -25,6 +25,13 @@ class CellCYK;
 #include "cellcyk.h"
 #include "gmm.h"
 #include "sample.h"
+
+#define INVALID_SPAREL_PROB 0.0
+#define TINY_SPAREL_PROB 0.00001
+
+#define SQRT_SYM_ID 58
+#define HLINE_SYM_ID 2
+
 
 //Aux functions
 inline std::shared_ptr<Hypothesis> leftmost(std::shared_ptr<Hypothesis> &h) {
@@ -53,11 +60,12 @@ inline std::shared_ptr<Hypothesis> rightmost(std::shared_ptr<Hypothesis> &h) {
 	return izq->pCInfo->box.s > der->pCInfo->box.s ? izq : der;
 }
 
+//Spcecial with frac term
 inline std::shared_ptr<Hypothesis> topmost(std::shared_ptr<Hypothesis> &h) {
 	if (!h.use_count())
 		HL_CERR("Invalid Pointer");
 
-	if (h->pt.use_count())
+	if (h->pt.use_count() || (h->prod.use_count() && (h->prod->tipo() == 'V' || h->prod->tipo() == 'I')))
 		return h;
 
 	std::shared_ptr<Hypothesis> izq = topmost(h->hleft);
@@ -66,11 +74,12 @@ inline std::shared_ptr<Hypothesis> topmost(std::shared_ptr<Hypothesis> &h) {
 	return izq->pCInfo->box.y < der->pCInfo->box.y ? izq : der;
 }
 
+//Spcecial with frac term
 inline std::shared_ptr<Hypothesis> buttommost(std::shared_ptr<Hypothesis> &h) {
 	if (!h.use_count())
 		HL_CERR("Invalid Pointer");
 
-	if (h->pt.use_count())
+	if (h->pt.use_count() || (h->prod.use_count() && (h->prod->tipo() == 'V' || h->prod->tipo() == 'I')))
 		return h;
 
 	std::shared_ptr<Hypothesis> izq = buttommost(h->hleft);
@@ -96,20 +105,79 @@ inline float solape(std::shared_ptr<Hypothesis> &a, std::shared_ptr<Hypothesis> 
 	return 0.0;
 }
 
-inline bool checkLeftRight(std::shared_ptr<Hypothesis> &h1, std::shared_ptr<Hypothesis> &h2)
+inline bool checkLeftRight(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
 {
 	//Check left-to-right order constraint in Hor/Sub/Sup relationships
-	std::shared_ptr<Hypothesis> rma = rightmost(h1);
-	std::shared_ptr<Hypothesis> lmb = leftmost(h2);
+	std::shared_ptr<Hypothesis> rma = rightmost(ha);
+	std::shared_ptr<Hypothesis> lmb = leftmost(hb);
 
 	int rmaw = rma->pCInfo->box.s - rma->pCInfo->box.x;
 	int lmbw = lmb->pCInfo->box.s - lmb->pCInfo->box.x;
-	int rminshift = rmaw * 0.2;
+	int rminshift = rmaw * 0.4;
+
+	if (rma->clase == SQRT_SYM_ID || rma->clase == HLINE_SYM_ID)
+	{
+		rminshift = rmaw - lmbw * 0.2;
+	}
 
 	if (lmb->pCInfo->box.x < rma->pCInfo->box.x + rminshift || lmb->pCInfo->box.s + rminshift <= rma->pCInfo->box.s)
 		return false;
 	else
 		return true;
+}
+
+//Check the upon symbols
+inline bool checkVerticalUpon(std::shared_ptr<Hypothesis> &ha, coo &bbox, double bcen)
+{
+	if (!ha.use_count())
+		HL_CERR("Invalid Pointer");
+
+	if (ha->pt.use_count())
+	{
+		coo &abox = ha->pCInfo->box;
+		int awidth = abox.s - abox.x, aheight = abox.t - abox.y;
+
+		if ((abox.x < bbox.x && (bbox.x - abox.x) > 0.5 * awidth) ||
+			(abox.s > bbox.s && (abox.s - bbox.s) > 0.5 * awidth))
+		{
+			double downRatio = double(abox.t - bcen) / aheight;
+			if (downRatio > 0.3) return false;
+		}
+
+		return true;
+	}
+
+	bool lcheck = checkVerticalUpon(ha->hleft, bbox, bcen);
+	bool rcheck = checkVerticalUpon(ha->hright, bbox, bcen);
+
+	return lcheck && rcheck;
+}
+
+//Check the down symbols
+inline bool checkVerticalDown(std::shared_ptr<Hypothesis> &hb, coo &abox, double acen)
+{
+	if (!hb.use_count())
+		HL_CERR("Invalid Pointer");
+
+	if (hb->pt.use_count())
+	{
+		coo &bbox = hb->pCInfo->box;
+		int bwidth = bbox.s - bbox.x, bheight = bbox.t - bbox.y;
+
+		if ((bbox.x < abox.x && (abox.x - bbox.x) > 0.5 * bwidth) ||
+			(bbox.s > abox.s && (bbox.s - abox.s) > 0.5 * bwidth))
+		{
+			double upRatio = double(acen - bbox.y) / bheight;
+			if (upRatio > 0.3) return false;
+		}
+
+		return true;
+	}
+
+	bool lcheck = checkVerticalDown(hb->hleft, abox, acen);
+	bool rcheck = checkVerticalDown(hb->hright, abox, acen);
+
+	return lcheck && rcheck;
 }
 
 inline bool isDigit(std::shared_ptr<Hypothesis> &H)
@@ -129,30 +197,6 @@ private:
 
 	double compute_prob(std::shared_ptr<Hypothesis> &h1, std::shared_ptr<Hypothesis> &h2, int k)
 	{
-		//Set probabilities according to spatial constraints  
-		double result = 1.0;
-		if (k <= 2) {
-			//Check left-to-right order constraint in Hor/Sub/Sup relationships
-			std::shared_ptr<Hypothesis> rma = rightmost(h1);
-			std::shared_ptr<Hypothesis> lmb = leftmost(h2);
-
-			int rmaw = rma->pCInfo->box.s - rma->pCInfo->box.x;
-			int lmbw = lmb->pCInfo->box.s - lmb->pCInfo->box.x;
-			//int minshift = 0;
-			int rminshift = rmaw * 0.2;
-			int lminshift = lmbw * 0.2;
-
-			if (lmb->pCInfo->box.x < rma->pCInfo->box.x + rminshift || lmb->pCInfo->box.s + lminshift <= rma->pCInfo->box.s)
-				return 0.0;
-
-			if (k == 0)
-			{
-				double overlap = std::max(solape(rma, lmb), solape(lmb, rma));
-				result = 1.0 / (1.0 + exp((overlap - 0.85) * 10));
-			}
-
-			return 1.0;
-		}
 
 		//Compute probabilities
 		std::vector<float> sample(NFEAT);
@@ -209,36 +253,25 @@ public:
 		int bwidth = bbox.s - bbox.x, bheight = bbox.t - bbox.y;
 
 		//Exclude the obviously invalid situation
-		if (abox.t <= bbox.y || abox.y >= bbox.t || !checkLeftRight(ha, hb)) return 0.0;
+		if (abox.t <= bbox.y || abox.y >= bbox.t) return INVALID_SPAREL_PROB;
+
+		if (!checkLeftRight(ha, hb))return TINY_SPAREL_PROB;
 
 		double score = 0.0;
 
-		bool haDigit = isDigit(ha), hbDigit = isDigit(hb);
-		
-		//only conside the central coordinate, hsdd and hwdd specially used for digit situation
-		double hshift = 0.3, hsdd = 0.4;
-		int hw = 20, hwdd = 8;
 		int cenDiff = hb->lcen - ha->rcen;
-		double cenRatio = std::abs(cenDiff) / (0.5 * (aheight + bheight));
-		double cenScore;
-		if (haDigit && hbDigit)
-			cenScore = 1 / (1 + exp((cenRatio - hsdd) * hwdd));
-		else
-			cenScore = 1 / (1 + exp((cenRatio - hshift) * hw));
+		int tDiff = hb->lineTop - ha->lineTop;
+		int bDiff = hb->lineBottom - ha->lineBottom;
 
-		//TODO More info will be included
-		int tDiff = bbox.t - abox.t;
-		int yDiff = bbox.y - abox.y;
-		int xsDiff = bbox.x - abox.s;
+		double avgH = 0.5 * (aheight + bheight);
+		/*double alineH = ha->lineBottom - ha->lineTop, blineH = hb->lineBottom - hb->lineTop;
+		double avgH = 0.5 * (alineH + blineH);*/
 
-		//Penalty for overlap
-		std::shared_ptr<Hypothesis> rma = rightmost(ha);
-		std::shared_ptr<Hypothesis> lmb = leftmost(hb);
-		double overlap = std::max(solape(rma, lmb), solape(lmb, rma));
-		double overlapPen = 1.0 / (1.0 + exp((overlap - 0.85) * 10));
-
-		score = cenScore*overlapPen;
-		return std::min(maxScore, score);
+		double cenRatio = cenDiff / avgH;
+		
+		double cenScore = 1.0 - std::abs(cenRatio);
+		score = cenScore;
+		return std::max(INVALID_SPAREL_PROB, std::min(maxScore, score));
 	}
 
 	double getSubProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, double maxScore = 1.0)
@@ -248,65 +281,34 @@ public:
 		int bwidth = bbox.s - bbox.x, bheight = bbox.t - bbox.y;
 
 		//Exclude the obviously invalid situation
-		if (abox.y > bbox.y || !checkLeftRight(ha, hb)) return 0.0;
+		if (abox.y > bbox.y) return INVALID_SPAREL_PROB;
+		if (!checkLeftRight(ha, hb))return TINY_SPAREL_PROB;
 
 		double score = 0.0;
+		std::shared_ptr<Hypothesis> topb = topmost(hb);
 
-		bool haDigit = isDigit(ha), hbDigit = isDigit(hb);
+		int cenDiff = topb->lcen - ha->rcen;
 
-		int hbboxcen = (bbox.t + bbox.y) * 0.5;
-		int hbleftcen = hbboxcen;
-		//int hbleftcen = pType == Grammar::PBTYPE::SUB ? std::min(hb->lcen, hbboxcen) : std::max(hb->lcen, hbboxcen);
-		int cenDiff = ha->rcen - hbleftcen;
+		double avgH = 0.5 * (aheight + topb->pCInfo->box.t - topb->pCInfo->box.y);
 
-		double sshift = 0.2, sext = 0.05, ssdd = 0.5;
-		int sw = 10, swext = 30, swdd = 8;
-
-		int tDiff = bbox.t - abox.t;
-		int yDiff = bbox.y - abox.y;
-		double whR = std::min((bbox.s - bbox.x) / double((bbox.t - bbox.y)), 2.0) / 2.0;
-		double whR2 = std::min(std::max(0.1, std::sqrt(whR)), 0.2);
-		double minshiftR = 0.20 - std::sqrt(whR) * 0.05;
-
-		double cenRatio, cenScore;
-
-		tDiff = tDiff > 0 ? tDiff : 0;
-		if (haDigit)
-		{
-			cenRatio = -cenDiff / (0.5 * (aheight + bheight)) + tDiff * 0.1 / double(bheight);
-
-			if (yDiff < 2.0 * minshiftR * aheight)return 0.0;
-			cenScore = 1 / (1 + exp((-cenRatio + ssdd) * swdd));
-		}
-		else
-		{
-			cenRatio = -cenDiff / (0.5 * (aheight + bheight)) + tDiff * whR2 / double(bheight);
-
-			if (hbDigit)
-			{
-				if (yDiff < 0.1 * minshiftR * aheight)return 0.0;
-				cenScore = 1 / (1 + exp((-cenRatio + sext) * swext));
-			}
-			else
-			{
-				float extshiftR = std::max(0.1f, (1 - tDiff / float(aheight)));
-				if (yDiff < 1.0 * minshiftR * extshiftR * aheight)return 0.0;
-				cenScore = 1 / (1 + exp((-cenRatio + sshift) * sw));
-			}
-		}
-
-		// Add the penalty for distance in SUB
-		double xsDiffRatio = double(bbox.x - abox.s) / mue->RX;
-		double horizonPen = 1.0 / (1.0 + exp(-(xsDiffRatio - 1.5) * 10));
-
-		double ytDiffRatio = double(bbox.y - abox.t) / mue->RY;
-		double verticalPen = 1.0 / (1.0 + exp(-(xsDiffRatio - 1.0) * 10));
-
-		double penalty = std::max(horizonPen, verticalPen);
-		cenScore *= (1.0 - penalty * 0.5);
+		double cenRatio = cenDiff / avgH;
+		double cenScore = 1 / (1 + exp((-cenRatio + 0.1) * 15));;
 
 		score = cenScore;
-		return std::min(maxScore, score);
+
+		// Add the penalty for distance in SUB
+		double xsDiff = double(bbox.x - abox.s) - mue->RX;
+		double ytDiff = double(bbox.y - abox.t) - mue->RY;
+		double penRatio = std::max(xsDiff, ytDiff) / avgH;
+		double verticalPen = 0.0;
+		if (penRatio > 0)
+			verticalPen = 1.0 / (1.0 + exp(-(penRatio - 0.2) * 15));
+
+		score -= (verticalPen * 0.5);
+
+		// Add the penalty for relative size
+
+		return std::max(INVALID_SPAREL_PROB, std::min(maxScore, score));
 	}
 
 	double getSupProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, double maxScore = 1.0)
@@ -316,85 +318,76 @@ public:
 		int bwidth = bbox.s - bbox.x, bheight = bbox.t - bbox.y;
 
 		//Exclude the obviously invalid situation
-		if (abox.t < bbox.t || !checkLeftRight(ha, hb)) return 0.0;
+		if (abox.t < bbox.t) return INVALID_SPAREL_PROB;
+		if (!checkLeftRight(ha, hb))return TINY_SPAREL_PROB;
 
 		double score = 0.0;
+		std::shared_ptr<Hypothesis> bottomb = buttommost(hb);
 
-		bool haDigit = isDigit(ha), hbDigit = isDigit(hb);
+		int cenDiff = ha->rcen - bottomb->lcen;
 
-		int hbboxcen = (bbox.t + bbox.y) * 0.5;
-		int hbleftcen = hbboxcen;
-		//int hbleftcen = pType == Grammar::PBTYPE::SUB ? std::min(hb->lcen, hbboxcen) : std::max(hb->lcen, hbboxcen);
-		int cenDiff = ha->rcen - hbleftcen;
+		double avgH = 0.5 * (aheight + bottomb->pCInfo->box.t - bottomb->pCInfo->box.y);
 
-		double sshift = 0.2, sext = 0.05, ssdd = 0.5;
-		int sw = 10, swext = 30, swdd = 8;
-
-		int tDiff = bbox.t - abox.t;
-		int yDiff = bbox.y - abox.y;
-		double whR = std::min((bbox.s - bbox.x) / double((bbox.t - bbox.y)), 2.0) / 2.0;
-		double whR2 = std::min(std::max(0.1, std::sqrt(whR)), 0.2);
-		double minshiftR = 0.20 - std::sqrt(whR) * 0.05;
-
-		double cenRatio, cenScore;
-
-		yDiff = yDiff < 0 ? yDiff : 0;
-		if (haDigit)
-		{
-			cenRatio = cenDiff / (0.5 * (aheight + bheight)) - yDiff * 0.1 / double(bheight);
-
-			if (-tDiff < 2.0 * minshiftR * aheight)return 0.0;
-			cenScore = 1 / (1 + exp((-cenRatio + ssdd) * swdd));
-		}
-		else
-		{
-			cenRatio = cenDiff / (0.5 * (aheight + bheight)) - yDiff * whR2 / double(bheight);
-
-			if (hbDigit)
-			{
-				if (-tDiff < 0.1 * minshiftR * aheight)return 0.0;
-				cenScore = 1 / (1 + exp((-cenRatio + sext) * swext));
-			}
-			else
-			{
-				float extshiftR = std::max(0.1f, (1 + yDiff / float(aheight)));
-				if (-tDiff < 1.0 * minshiftR * extshiftR * aheight)return 0.0;
-				cenScore = 1 / (1 + exp((-cenRatio + sshift) * sw));
-			}
-		}
-
-		// Add the penalty for distance in SUB
-		double xsDiffRatio = double(bbox.x - abox.s) / mue->RX;
-		double horizonPen = 1.0 / (1.0 + exp(-(xsDiffRatio - 1.5) * 10));
-
-		double ytDiffRatio = double(bbox.y - abox.t) / mue->RY;
-		double verticalPen = 1.0 / (1.0 + exp(-(xsDiffRatio - 1.0) * 10));
-
-		double penalty = std::max(horizonPen, verticalPen);
-		cenScore *= (1.0 - penalty * 0.5);
+		double cenRatio = cenDiff / avgH;
+		double cenScore = 1 / (1 + exp((-cenRatio + 0.1) * 15));
 
 		score = cenScore;
-		return std::min(maxScore, score);
+
+		// Add the penalty for distance in SUP
+		double xsDiff = double(bbox.x - abox.s) - mue->RX;
+		double ytDiff = double(abox.y - bbox.t) - mue->RY;
+		double penRatio = std::max(xsDiff, ytDiff) / avgH;
+		double verticalPen = 0.0;
+		if (penRatio > 0)
+			verticalPen = 1.0 / (1.0 + exp(-(penRatio - 0.2) * 15));
+
+		score -= (verticalPen * 0.5);
+
+		// Add the penalty for relative size
+
+		return std::max(INVALID_SPAREL_PROB, std::min(maxScore, score));
 	}
 
 	double getVerProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, bool strict = false)
 	{
+		coo &abox = ha->pCInfo->box, &bbox = hb->pCInfo->box;
+
+		std::shared_ptr<Hypothesis> topb = topmost(hb);
+
 		//Pruning
-		if (hb->pCInfo->box.y < (ha->pCInfo->box.y + ha->pCInfo->box.t) / 2
-			|| abs((ha->pCInfo->box.x + ha->pCInfo->box.s) / 2 - (hb->pCInfo->box.x + hb->pCInfo->box.s) / 2) > 2.5*mue->RX
-			|| (hb->pCInfo->box.x > ha->pCInfo->box.s || hb->pCInfo->box.s < ha->pCInfo->box.x))
-			return 0.0;
+		/*if (bbox.y < (abox.y + abox.t) / 2
+			|| abs((abox.x + abox.s) / 2 - (bbox.x + bbox.s) / 2) > 2.5*mue->RX
+			|| (bbox.x > abox.s || bbox.s < abox.x))
+			return INVALID_SPAREL_PROB;*/
+		
 
-		if (!strict)
-			return compute_prob(ha, hb, 3);
+		//Check the position relationship of outer lines
+		double bcen = (hb->lcen + hb->rcen)*0.5;
+		double acen = (ha->lcen + ha->rcen)*0.5;
+		if (!checkVerticalUpon(ha, bbox, bcen) || !checkVerticalDown(hb, abox, acen))
+			return INVALID_SPAREL_PROB;
 
-		//Penalty for strict relationships
-		float penalty = abs(ha->pCInfo->box.x - hb->pCInfo->box.x) / (3.0*mue->RX)
-			+ abs(ha->pCInfo->box.s - hb->pCInfo->box.s) / (3.0*mue->RX);
+		coo &topbbox = topb->pCInfo->box;
+		double cutRatio = (acen - topbbox.y) / (topbbox.t - topbbox.y);
+		if (cutRatio > 0.5 || bbox.x > abox.s || bbox.s < abox.x)
+			return INVALID_SPAREL_PROB;
 
-		if (penalty > 0.95) penalty = 0.95;
+		double score = 0.0;
 
-		return (1.0 - penalty) * compute_prob(ha, hb, 3);
+		score = compute_prob(ha, hb, 3);
+
+		if (strict)
+		{
+			//Penalty for strict relationships
+			float penalty = abs(abox.x - bbox.x) / (3.0*mue->RX)
+				+ abs(abox.s - bbox.s) / (3.0*mue->RX);
+
+			if (penalty > 0.95) penalty = 0.95;
+
+			score *= (1 - penalty);
+		}
+
+		return std::max(INVALID_SPAREL_PROB, score);
 	}
 
 	double getInsProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)
@@ -403,12 +396,12 @@ public:
 
 		if (solape(hb, ha) < 0.4 ||
 			hb->pCInfo->box.x < ha->pCInfo->box.x || hb->pCInfo->box.y < (ha->pCInfo->box.y - sqrtH*0.3))
-			return 0.0;
+			return INVALID_SPAREL_PROB;
 
 		std::shared_ptr<Hypothesis> rma = rightmost(ha);
 		std::shared_ptr<Hypothesis> rmb = rightmost(hb);
 
-		if (rma->pCInfo->box.s <= rmb->pCInfo->box.x + 1) return 0.0;
+		if (rma->pCInfo->box.s <= rmb->pCInfo->box.x + 1) return TINY_SPAREL_PROB;
 
 		/*if (solape(hb, ha) < 0.5 ||
 			hb->pCInfo->box.x < ha->pCInfo->box.x || hb->pCInfo->box.y < ha->pCInfo->box.y)
@@ -423,4 +416,3 @@ public:
 	}
 };
 
-#endif

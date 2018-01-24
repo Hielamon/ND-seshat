@@ -12,6 +12,10 @@
 struct SegUnit
 {
 	cv::Rect ROI;
+
+	//the standart virtual position
+	double cen, top, bottom;
+
 	double score;
 	int symID;
 	std::string symStr;
@@ -99,32 +103,19 @@ public:
 				int y = iter->second.get<int>("bndbox.ymin");
 				int s = iter->second.get<int>("bndbox.xmax");
 				int t = iter->second.get<int>("bndbox.ymax");
-				
 
 				seg.ROI = cv::Rect(x, y, s - x, t - y);
-				
+				setStdVirtualPos(seg);
 				vSegUnits.push_back(seg);
 			}
 		}
 		std::vector<SegUnit> vSegTmp;
-		/*SegUnit seg;
-		seg.symID = 3;
-		seg.symStr = "0";
-		seg.score = 1.0;
-
-		cv::Rect roi02 = vSegUnits[0].ROI;
-		roi02 = GetUnionRoi(roi02, vSegUnits[1].ROI);
-		roi02 = GetUnionRoi(roi02, vSegUnits[2].ROI);
-
-		seg.ROI = roi02;
-		vSegTmp.push_back(seg);*/
-		/*vSegTmp.assign(vSegUnits.begin() + 0, vSegUnits.begin() + 3);
-		vSegTmp.push_back(vSegUnits[3]);
-		vSegTmp.push_back(vSegUnits[4]);
-		vSegTmp.push_back(vSegUnits[5]);
+		/*vSegTmp.assign(vSegUnits.begin() + 8, vSegUnits.begin() + 10);
+		vSegTmp.push_back(vSegUnits[11]);
+		vSegTmp.push_back(vSegUnits[12]);
 		
 		vSegUnits = vSegTmp;*/
-		vSegUnits.assign(vSegUnits.begin() + 7, vSegUnits.begin() + 10);
+		vSegUnits.assign(vSegUnits.begin() + 0, vSegUnits.begin() + 7);
 	}
 
 	void ShowSample(const std::string &windowName = "Sample")
@@ -146,6 +137,21 @@ public:
 			cv::Rect scaledROI(seg.ROI.x * scale, seg.ROI.y * scale,
 							   seg.ROI.width * scale, seg.ROI.height * scale);
 			cv::rectangle(showImg, scaledROI, color, 2 * scale, cv::LINE_AA);
+			
+			if (pSymSet.use_count() != 0)
+			{
+				cv::Point cenLintS(seg.ROI.x * scale, seg.cen * scale), cenLintE(seg.ROI.br().x * scale, seg.cen * scale);
+				cv::line(showImg, cenLintS, cenLintE, color, 1, cv::LINE_AA);
+
+				cenLintS = cv::Point(seg.ROI.x * scale, seg.top * scale);
+				cenLintE = cv::Point(seg.ROI.br().x * scale, seg.top * scale);
+				cv::line(showImg, cenLintS, cenLintE, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+
+				cenLintS = cv::Point(seg.ROI.x * scale, seg.bottom * scale);
+				cenLintE = cv::Point(seg.ROI.br().x * scale, seg.bottom * scale);
+				cv::line(showImg, cenLintS, cenLintE, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+			}
+
 			ioStr.str("");
 			//ioStr << seg.symID << " | " << seg.symStr << " | " << seg.score;
 			ioStr << seg.symID << " | " << seg.symStr << " | " << i;
@@ -249,7 +255,7 @@ public:
 	}
 
 	void getSegUnitInfo(int segIdx, int NBest, std::vector<int> &vSymIdx,
-						std::vector<float> &vProb, double &cmy, double &asc, double &des)
+						std::vector<float> &vProb)
 	{
 		if (NBest != 1)
 			HL_CERR("Request teh NB = 1 currently!!!");
@@ -262,42 +268,6 @@ public:
 		//Get from the Ground truth, just only one
 		vSymIdx[0] = curSeg.symID;
 		vProb[0] = 1.0;
-
-		cv::Mat segMat = Img(curSeg.ROI);
-
-		int n = 0;
-		cmy = 0;
-		double asc_ = 0, des_ = 0;
-		double wasc = 0.1, wdes = 1.9;
-		double paso = 1.8 / curSeg.ROI.height;
-		double sumasc = 0, sumdes = 0;
-
-		for (size_t i = 0; i < curSeg.ROI.height; i++)
-		{
-			uchar *pSegRow = segMat.ptr(i);
-			for (size_t j = 0; j < curSeg.ROI.width; j++)
-			{
-				if (pSegRow[j] > 100)
-				{
-					int y = i + curSeg.ROI.y;
-					sumasc += wasc;
-					asc_ += y*wasc;
-
-					n++;
-					cmy += y;
-
-					sumdes += wdes;
-					des_ += y*wdes;
-				}
-			}
-
-			wasc += paso;
-			wdes -= paso;
-		}
-
-		asc = asc_ / sumasc;
-		cmy = cmy / n;
-		des = des_ / sumdes;
 	}
 
 	SegUnit &getSegUnit(int segIdx)
@@ -519,4 +489,15 @@ private:
 	int W, H;
 
 	std::shared_ptr<SymSet> pSymSet;
+
+	bool setStdVirtualPos(SegUnit &seg)
+	{
+		StdSymInfo sSymInfo = pSymSet->stdInfoClase(seg.symID);
+		double rel_h = sSymInfo.rel_t - sSymInfo.rel_y;
+		double ratio = (seg.ROI.br().y - seg.ROI.y) / rel_h;
+		seg.cen = seg.ROI.y + (STD_CENTER_Y - sSymInfo.rel_y) * ratio;
+		seg.top = seg.ROI.y + (STD_TOP_Y - sSymInfo.rel_y) * ratio;
+		seg.bottom = seg.ROI.y + (STD_BOTTOM_Y - sSymInfo.rel_y) * ratio;
+		return true;
+	}
 };

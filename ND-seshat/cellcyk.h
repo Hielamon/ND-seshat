@@ -135,21 +135,29 @@ inline void MergeRegionsCenter(std::shared_ptr<CellCYK>& pCA, int ntIDA,
 	case 'A': //Data Hypothesis a
 		s->lcen = a->lcen;
 		s->rcen = a->rcen;
+		s->lineTop = a->lineTop;
+		s->lineBottom = a->lineBottom;
 		s->totalSymWidth = a->totalSymWidth;
 		break;
 	case 'B': //Data Hypothesis b
 		s->lcen = b->lcen;
 		s->rcen = b->rcen;
+		s->lineTop = b->lineTop;
+		s->lineBottom = b->lineBottom;
 		s->totalSymWidth = b->totalSymWidth;
 		break;
 	case 'C': //Center point
 		s->lcen = (pCA->pCInfo->box.y + pCA->pCInfo->box.t) * 0.5;
 		s->rcen = (pCB->pCInfo->box.y + pCB->pCInfo->box.t) * 0.5;
+		s->lineTop = std::min(a->lineTop, b->lineTop);
+		s->lineBottom = std::max(a->lineBottom, b->lineBottom);
 		s->totalSymWidth = std::max(a->totalSymWidth, b->totalSymWidth);
 		break;
 	case 'M': //Mean of both centers
 		s->lcen = (a->lcen * a->totalSymWidth + b->lcen *b->totalSymWidth) / (a->totalSymWidth + b->totalSymWidth); //a->lcen;
 		s->rcen = (a->rcen * a->totalSymWidth + b->rcen *b->totalSymWidth) / (a->totalSymWidth + b->totalSymWidth); //b->rcen;
+		s->lineTop = std::min(a->lineTop, b->lineTop);
+		s->lineBottom = std::max(a->lineBottom, b->lineBottom);
 		s->totalSymWidth = a->totalSymWidth + b->totalSymWidth;
 		break;
 	default:

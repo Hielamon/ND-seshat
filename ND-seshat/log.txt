@@ -1,0 +1,168 @@
+CYK table initialization:
+Segment 0
+s LetterMin 1
+s Sym 1
+s lets 1
+Segment 1
+equal OpBin 1
+Segment 2
+b LetterMin 1
+b Sym 1
+Segment 3
+k LetterMin 1
+k Sym 1
+Segment 4
+- OpBin 1
+- OpUn 1
+- hline 1
+Segment 5
+- OpBin 1
+- OpUn 1
+- hline 1
+Segment 6
+b LetterMin 1
+b Sym 1
+Segment 7
+k LetterMin 1
+k Sym 1
+Segment 8
+- OpBin 1
+- OpUn 1
+- hline 1
+Segment 9
+b LetterMin 1
+b Sym 1
+Segment 10
+k LetterMin 1
+k Sym 1
+Segment 11
+- OpBin 1
+- OpUn 1
+- hline 1
+Segment 12
+1 Digit 1
+1 Sym 1
+1 leti 1
+1 letl 1
+Segment 13
+f LetterMin 1
+f Sym 1
+Segment 14
+lpar OpenPar 1
+Segment 15
+b LetterMin 1
+b Sym 1
+Segment 16
+k LetterMin 1
+k Sym 1
+Segment 17
+rpar ClosePar 1
+Segment 18
+- OpBin 1
+- OpUn 1
+- hline 1
+Segment 19
+f LetterMin 1
+f Sym 1
+Segment 20
+lpar OpenPar 1
+Segment 21
+b LetterMin 1
+b Sym 1
+Segment 22
+k LetterMin 1
+k Sym 1
+Segment 23
+- OpBin 1
+- OpUn 1
+- hline 1
+Segment 24
+1 Digit 1
+1 Sym 1
+1 leti 1
+1 letl 1
+Segment 25
+rpar ClosePar 1
+Segment 26
+f LetterMin 1
+f Sym 1
+Segment 27
+lpar OpenPar 1
+Segment 28
+b LetterMin 1
+b Sym 1
+Segment 29
+k LetterMin 1
+k Sym 1
+Segment 30
+rpar ClosePar 1
+
+CYK parsing algorithm
+Size 1: Generated 31
+Size 2: Generated 18
+Size 3: Generated 17
+Size 4: Generated 18
+Size 5: Generated 23
+Size 6: Generated 29
+Size 7: Generated 35
+Size 8: Generated 37
+Size 9: Generated 40
+Size 10: Generated 38
+Size 11: Generated 36
+Size 12: Generated 36
+Size 13: Generated 34
+Size 14: Generated 27
+Size 15: Generated 23
+Size 16: Generated 21
+Size 17: Generated 20
+Size 18: Generated 18
+Size 19: Generated 20
+Size 20: Generated 21
+Size 21: Generated 19
+Size 22: Generated 17
+Size 23: Generated 16
+Size 24: Generated 15
+Size 25: Generated 12
+Size 26: Generated 9
+Size 27: Generated 6
+Size 28: Generated 4
+Size 29: Generated 3
+Size 30: Generated 2
+Size 31: Generated 1
+
+Most Likely Hypothesis 31 Segmentations
+Math Symbols : 
+s
+=
+b
+k
+-
+b
+k
+-
+b
+k
+-
+1
+-
+f
+(
+b
+k
+)
+-
+f
+(
+b
+k
+-
+1
+)
+f
+(
+b
+k
+)
+
+Latex : 
+s = b k - \frac{b k - b k - 1}{f ( b k ) - f ( b k - 1 )} f ( b k )

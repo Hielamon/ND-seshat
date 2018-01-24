@@ -55,7 +55,11 @@ int main(int argc, char *argv[])
 	sample->LoadFromVOC2007XML(testXML, imgPath);
 	//sample->ShowSample();
 	
+	HL_INTERVAL_START;
+
 	meparser.parse(sample);
+
+	HL_INTERVAL_END;
 
 	sample->ShowSample("SampleDebug");
 	return 0;

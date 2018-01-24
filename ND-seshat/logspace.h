@@ -164,9 +164,9 @@ public:
 
 		//Set the region to search
 		sx = std::max(pCell->pCInfo->box.x + 1, pCell->pCInfo->box.s - (int)(RX * 2));  // (sx,sy)------
-		ss = pCell->pCInfo->box.s + RX * 8;                    //  ------------
-		sy = pCell->pCInfo->box.y - RY;                      //  ------------
-		st = pCell->pCInfo->box.t + RY;                      //  ------(ss,st)
+		ss = pCell->pCInfo->box.s + RX * 10;                    //  ------------
+		sy = pCell->pCInfo->box.y - 2 * RY;                      //  ------------
+		st = pCell->pCInfo->box.t + 2 * RY;                      //  ------(ss,st)
 
 											 //Retrieve the regions
 		bsearchHBP(sx, sy, ss, st, set, pCell);

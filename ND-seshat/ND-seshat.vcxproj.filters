@@ -70,6 +70,9 @@
     <None Include="Grammar\symbol_nd.types">
       <Filter>Resource Files</Filter>
     </None>
+    <None Include="Grammar\symbol_nd - 副本.types">
+      <Filter>Resource Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="VOC2007\charmap_.txt">

@@ -55,6 +55,9 @@ struct Hypothesis{
 
 	//Vertical center left and right
 	double lcen, rcen;
+	//The top and bottom coordinate of current line
+	double lineTop, lineBottom;
+
 	//the total width of all elements
 	double totalSymWidth;
 
@@ -65,6 +68,8 @@ struct Hypothesis{
 		clase = c;
 		pr = p;
 		lcen = rcen = 0;
+		lineTop = lineBottom = 0;
+		totalSymWidth = 0;
 	}
 	~Hypothesis() {}
 
@@ -74,8 +79,13 @@ struct Hypothesis{
 		pr = H->pr;
 		hleft = H->hleft;
 		hright = H->hright;
+
 		lcen = H->lcen;
 		rcen = H->rcen;
+		lineBottom = H->lineBottom;
+		lineTop = H->lineTop;
+		totalSymWidth = H->totalSymWidth;
+
 		pCInfo = H->pCInfo;
 		prod = H->prod;
 		pt = H->pt;
