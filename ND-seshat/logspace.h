@@ -96,7 +96,12 @@ class LogSpace {
 		if (U_V) { //Direction 'Up' (U)
 			while (i<N && data[i]->pCInfo->box.x <= ss) {
 				if (data[i]->pCInfo->box.t <= st && data[i]->pCInfo->box.t >= sy && data[i]->pCInfo->box.s <= ss) {
-					if (data[i]->pCInfo->box.t < cd->pCInfo->box.y)
+					
+					//For checking in the x-coordinate
+					bool checkRange = data[i]->pCInfo->box.s < cd->pCInfo->box.s &&
+						data[i]->pCInfo->box.x > cd->pCInfo->box.s;
+
+					if (data[i]->pCInfo->box.t < cd->pCInfo->box.y && checkRange)
 						sy = std::max(std::max(data[i]->pCInfo->box.y, data[i]->pCInfo->box.t - RY), sy);
 					set.push_back(data[i]);
 				}
@@ -106,7 +111,12 @@ class LogSpace {
 		else { //Direction 'Down' (V)
 			while (i<N && data[i]->pCInfo->box.x <= ss) {
 				if (data[i]->pCInfo->box.y <= st && data[i]->pCInfo->box.y >= sy && data[i]->pCInfo->box.s <= ss) {
-					if (data[i]->pCInfo->box.y > cd->pCInfo->box.t)
+					
+					//For checking in the x-coordinate
+					bool checkRange = data[i]->pCInfo->box.s < cd->pCInfo->box.s &&
+						data[i]->pCInfo->box.x > cd->pCInfo->box.s;
+
+					if (data[i]->pCInfo->box.y > cd->pCInfo->box.t && checkRange)
 						st = std::min(std::min(data[i]->pCInfo->box.t, data[i]->pCInfo->box.y + RY), st);
 					set.push_back(data[i]);
 				}
@@ -130,8 +140,16 @@ class LogSpace {
 		//Retrieve the compatible regions
 		while (i<N && data[i]->pCInfo->box.x <= ss) {
 			if (data[i]->pCInfo->box.y <= st && data[i]->pCInfo->box.t >= sy) {
-				if (data[i]->pCInfo->box.x > cd->pCInfo->box.s)
+
+				//for checking the overlap in y-coordinate
+				int tly = std::max(data[i]->pCInfo->box.y, cd->pCInfo->box.y);
+				int bry = std::min(data[i]->pCInfo->box.t, cd->pCInfo->box.t);
+
+				if (data[i]->pCInfo->box.x > cd->pCInfo->box.s && bry > tly)
+				{
+					//ss = std::min(data[i]->pCInfo->box.s, ss);
 					ss = std::min(std::min(data[i]->pCInfo->box.s, data[i]->pCInfo->box.x + RX), ss);
+				}
 				set.push_back(data[i]);
 			}
 			i++;

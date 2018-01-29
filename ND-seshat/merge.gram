@@ -1,0 +1,54 @@
+Digit
+sin
+s
+in
+i
+n
+cos
+c
+os
+o
+s
+tan
+t
+an
+a
+n
+log
+l
+og
+o
+g
+
+START
+Digit
+sin
+cos
+tan
+log
+
+PTERM
+1.00000000 Digit 0 0
+1.00000000 Digit 1 1
+1.00000000 Digit 2 2
+1.00000000 Digit 3 3
+1.00000000 Digit 4 4
+1.00000000 Digit 5 5
+1.00000000 Digit 6 6
+1.00000000 Digit 7 7
+1.00000000 Digit 8 8
+1.00000000 Digit 9 9
+1.00000000 s s s
+1.00000000 s S S
+1.00000000 i i i
+1.00000000 n n n
+1.00000000 c c c
+1.00000000 c C C
+1.00000000 o o o
+1.00000000 t t t
+1.00000000 a a a
+1.00000000 l l l
+1.00000000 g g g
+
+PBIN
+1.00000000 H Digit Digit Digit "" M

@@ -26,7 +26,7 @@ class CellCYK;
 #include "gmm.h"
 #include "sample.h"
 
-#define INVALID_SPAREL_PROB 0.0
+#define INVALID_SPAREL_PROB 0.0000
 #define TINY_SPAREL_PROB 0.00001
 
 #define SQRT_SYM_ID 58
@@ -65,13 +65,16 @@ inline std::shared_ptr<Hypothesis> topmost(std::shared_ptr<Hypothesis> &h) {
 	if (!h.use_count())
 		HL_CERR("Invalid Pointer");
 
-	if (h->pt.use_count() || (h->prod.use_count() && (h->prod->tipo() == 'V' || h->prod->tipo() == 'I')))
+	if (h->pt.use_count() || (h->prod.use_count() && 
+		(h->prod->tipo() == 'V' || h->prod->tipo() == 'I' || h->prod->tipo() == 'e')))
 		return h;
 
 	std::shared_ptr<Hypothesis> izq = topmost(h->hleft);
 	std::shared_ptr<Hypothesis> der = topmost(h->hright);
 
-	return izq->pCInfo->box.y < der->pCInfo->box.y ? izq : der;
+	double izqCen = 0.5 * (izq->lcen + izq->rcen), derCen = 0.5 * (der->lcen + der->rcen);
+
+	return izqCen < derCen ? izq : der;
 }
 
 //Spcecial with frac term
@@ -79,13 +82,14 @@ inline std::shared_ptr<Hypothesis> buttommost(std::shared_ptr<Hypothesis> &h) {
 	if (!h.use_count())
 		HL_CERR("Invalid Pointer");
 
-	if (h->pt.use_count() || (h->prod.use_count() && (h->prod->tipo() == 'V' || h->prod->tipo() == 'I')))
+	if (h->pt.use_count() || (h->prod.use_count() &&
+		(h->prod->tipo() == 'V' || h->prod->tipo() == 'I' || h->prod->tipo() == 'e')))
 		return h;
 
 	std::shared_ptr<Hypothesis> izq = buttommost(h->hleft);
 	std::shared_ptr<Hypothesis> der = buttommost(h->hright);
-
-	return izq->pCInfo->box.t > der->pCInfo->box.t ? izq : der;
+	double izqCen = 0.5 * (izq->lcen + izq->rcen), derCen = 0.5 * (der->lcen + der->rcen);
+	return izqCen > derCen ? izq : der;
 }
 
 //Percentage of the area of region A that overlaps with region B
@@ -114,13 +118,20 @@ inline bool checkLeftRight(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypo
 	int rmaw = rma->pCInfo->box.s - rma->pCInfo->box.x;
 	int lmbw = lmb->pCInfo->box.s - lmb->pCInfo->box.x;
 	int rminshift = rmaw * 0.4;
+	int lminshift = rmaw * 0.4;
+
+	if (rma->pCInfo->box.t < lmb->pCInfo->box.y || rma->pCInfo->box.y > lmb->pCInfo->box.t)
+	{
+		lminshift = 0.0;
+	}
 
 	if (rma->clase == SQRT_SYM_ID || rma->clase == HLINE_SYM_ID)
 	{
-		rminshift = rmaw - lmbw * 0.2;
+		rminshift = rmaw - lmbw * 0.35;
+		lminshift = rmaw - lmbw * 0.35;
 	}
 
-	if (lmb->pCInfo->box.x < rma->pCInfo->box.x + rminshift || lmb->pCInfo->box.s + rminshift <= rma->pCInfo->box.s)
+	if (lmb->pCInfo->box.x < rma->pCInfo->box.x + rminshift || lmb->pCInfo->box.s + lminshift <= rma->pCInfo->box.s)
 		return false;
 	else
 		return true;
@@ -246,6 +257,39 @@ public:
 		sample[8] = (b->pCInfo->box.t - a->pCInfo->box.t) / F;
 	}
 
+	double getWithType(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, char type)
+	{
+		double res = 0.0;
+		switch (type)
+		{
+		case 'H':
+			res = getHorProb(ha, hb);
+			break;
+		case 'B':
+			res = getSubProb(ha, hb);
+			break;
+		case 'P':
+			res = getSupProb(ha, hb);
+			break;
+		case 'V':
+			res = getVerProb(ha, hb);
+			break;
+		case 'e':
+			res = getVerProb(ha, hb, true);
+			break;
+		case 'I':
+			res = getInsProb(ha, hb);
+			break;
+		case 'M':
+			res = getMrtProb(ha, hb);
+			break;
+		default:
+			break;
+		}
+
+		return res;
+	}
+
 	double getHorProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, double maxScore = 1.0)
 	{
 		coo &abox = ha->pCInfo->box, &bbox = hb->pCInfo->box;
@@ -259,15 +303,17 @@ public:
 
 		double score = 0.0;
 
-		int cenDiff = hb->lcen - ha->rcen;
-		int tDiff = hb->lineTop - ha->lineTop;
-		int bDiff = hb->lineBottom - ha->lineBottom;
+		double cenDiff = hb->lcen - ha->rcen;
 
 		double avgH = 0.5 * (aheight + bheight);
 		/*double alineH = ha->lineBottom - ha->lineTop, blineH = hb->lineBottom - hb->lineTop;
 		double avgH = 0.5 * (alineH + blineH);*/
 
 		double cenRatio = cenDiff / avgH;
+
+#ifdef LOG_COMPUTE
+		std::cout << "CenRatio = " << cenRatio << std::endl;
+#endif // LOG_COMPUTE
 		
 		double cenScore = 1.0 - std::abs(cenRatio);
 		score = cenScore;
@@ -286,12 +332,19 @@ public:
 
 		double score = 0.0;
 		std::shared_ptr<Hypothesis> topb = topmost(hb);
+		std::shared_ptr<Hypothesis> bottoma = buttommost(ha);
 
-		int cenDiff = topb->lcen - ha->rcen;
+		double cenDiff = topb->lcen - bottoma->rcen;
 
 		double avgH = 0.5 * (aheight + topb->pCInfo->box.t - topb->pCInfo->box.y);
 
 		double cenRatio = cenDiff / avgH;
+
+#ifdef LOG_COMPUTE
+		std::cout << "CenRatio = " << cenRatio << std::endl;
+		std::cout << "bottoma->rcen = " << bottoma->rcen << std::endl;
+#endif // LOG_COMPUTE
+
 		double cenScore = 1 / (1 + exp((-cenRatio + 0.1) * 15));;
 
 		score = cenScore;
@@ -323,12 +376,19 @@ public:
 
 		double score = 0.0;
 		std::shared_ptr<Hypothesis> bottomb = buttommost(hb);
+		std::shared_ptr<Hypothesis> topa = topmost(ha);
 
-		int cenDiff = ha->rcen - bottomb->lcen;
+		double cenDiff = topa->rcen - bottomb->lcen;
 
 		double avgH = 0.5 * (aheight + bottomb->pCInfo->box.t - bottomb->pCInfo->box.y);
 
 		double cenRatio = cenDiff / avgH;
+
+#ifdef LOG_COMPUTE
+		std::cout << "CenRatio = " << cenRatio << std::endl;
+		std::cout << "topa->rcen = " << topa->rcen << std::endl;
+#endif // LOG_COMPUTE
+
 		double cenScore = 1 / (1 + exp((-cenRatio + 0.1) * 15));
 
 		score = cenScore;
@@ -348,7 +408,7 @@ public:
 		return std::max(INVALID_SPAREL_PROB, std::min(maxScore, score));
 	}
 
-	double getVerProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, bool strict = false)
+	double getVerProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb, bool strict = false, double maxScore = 1.0)
 	{
 		coo &abox = ha->pCInfo->box, &bbox = hb->pCInfo->box;
 
@@ -374,7 +434,19 @@ public:
 
 		double score = 0.0;
 
-		score = compute_prob(ha, hb, 3);
+		
+		double cenhb = 0.5 * (hb->rcen + hb->lcen);
+		double cenha = 0.5 * (ha->rcen + ha->lcen);
+		double cenDiff = cenhb - cenha;
+
+		double yInterval = (abox.t - cenha) + (cenhb - bbox.y);
+
+		double cenRatio = cenDiff / yInterval;
+		double cenScore = 1 / (1 + exp((-cenRatio + 0.3) * 20));
+
+		score = cenScore;
+
+		//score = compute_prob(ha, hb, 3);
 
 		if (strict)
 		{
@@ -387,7 +459,9 @@ public:
 			score *= (1 - penalty);
 		}
 
-		return std::max(INVALID_SPAREL_PROB, score);
+		score *= maxScore;
+
+		return std::max(INVALID_SPAREL_PROB, std::min(maxScore, score));
 	}
 
 	double getInsProb(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypothesis> &hb)

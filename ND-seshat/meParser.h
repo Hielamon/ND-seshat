@@ -1,4 +1,10 @@
 #pragma once
+#define NB 1
+
+//#define SHOW_PIPELINE
+#define LOG_COMPUTE
+
+
 #include <algorithm>
 #include <sstream>
 #include "symSet.h"
@@ -8,10 +14,6 @@
 #include "logspace.h"
 #include "sparel.h"
 
-#define NB 1
-
-//#define SHOW_PIPELINE
-//#define LOG_COMPUTE
 
 inline void PrintSymSeg(std::shared_ptr<Hypothesis> &H)
 {
@@ -206,7 +208,7 @@ public:
 		//ptfactor = 0.37846575;
 		ptfactor = 0.0;
 		//pbfactor = 0.14864657;
-		pbfactor = 0.0;
+		pbfactor = 1.0;
 
 		//clusterF = 0.15680604;
 		clusterF = 1;
@@ -236,6 +238,8 @@ public:
 		M->detRefSymbol();
 
 		M->computeSegDistance(M->RX, M->RY);
+
+
 
 		int N = M->getSegUnitSize();
 		int K = pG->noTerminales.size();
@@ -603,13 +607,32 @@ private:
 		 //Compute the (log)probability
 		 //prob = pbfactor * pd->prior + rfactor * log(prob * grpen) + A->pr + B->pr;
 		 double tmpProb = prob;
-		 prob = pbfactor *pd->prior + rfactor * log(prob) + dfactor * log(grpen)/* * (1.0 / tallaS)*/ + A->pr + B->pr;
+		 double pdPrior = pd->prior;
+		 if (pdPrior > 0.0)
+		 {
+			 char typeC = pd->tipo();
+			 //char allType[7] = { 'H', 'B', 'P', 'V', 'e', 'I', 'M' };
+			 char allType[5] = { 'H', 'B', 'P', 'V', 'e'};
+			 for (size_t i = 0; i < 5; i++)
+			 {
+				 if (typeC == allType[i]) continue;
+				 double cdpr = pSPR->getWithType(A, B, allType[i]);
+				 if (cdpr > prob)
+				 {
+					 pdPrior = 0.0;
+					 break;
+				 }
+			 }
+		 }
+			 
+
+		 prob = pbfactor * pdPrior + rfactor * log(prob) + dfactor * log(grpen)/* * (1.0 / tallaS)*/ + A->pr + B->pr;
 
 #ifdef LOG_COMPUTE
 		 if (tmpProb >= TINY_SPAREL_PROB)
 		 {
 			 //HL_GENERAL_LOG("Production: " + pd->sS << "(" << tallaS << ") ---> " + pd->sA << "(" << tallaA << ") " + pd->sB << "(" << tallaB << ")");
-			 HL_GENERAL_RED_LOG("(" << prob << ") " << "dist penalty: " << grpen << " ; A prob: " << A->pr << " ; B prob : " << B->pr);
+			 HL_GENERAL_RED_LOG("(" << prob << ") " << "prior: " << pdPrior << " ; dist penalty: " << grpen << " ; A prob: " << A->pr << " ; B prob : " << B->pr);
 			 std::cout << std::endl;
 		 }
 #endif // LOG_COMPUTE

@@ -267,7 +267,8 @@ private:
 	void addNoTerminal(const std::string& ntSymbol)
 	{
 		int key = noTerminales.size();
-		noTerminales[ntSymbol] = key;
+		if(noTerminales.find(ntSymbol) == noTerminales.end())
+			noTerminales[ntSymbol] = key;
 	}
 
 	void addTerminal(float pr, const std::string &S, const std::string &T, const std::string &tex)

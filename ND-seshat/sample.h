@@ -115,7 +115,7 @@ public:
 		vSegTmp.push_back(vSegUnits[12]);
 		
 		vSegUnits = vSegTmp;*/
-		vSegUnits.assign(vSegUnits.begin() + 0, vSegUnits.begin() + 7);
+		//vSegUnits.assign(vSegUnits.begin() + 6, vSegUnits.begin() + 13);
 	}
 
 	void ShowSample(const std::string &windowName = "Sample")
