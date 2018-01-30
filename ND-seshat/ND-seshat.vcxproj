@@ -105,7 +105,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;SHOW_PIPELINE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_DEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
     </ClCompile>
     <Link>
@@ -158,6 +158,7 @@
     <ClInclude Include="logspace.h" />
     <ClInclude Include="meParser.h" />
     <ClInclude Include="production.h" />
+    <ClInclude Include="relationSet.h" />
     <ClInclude Include="sample.h" />
     <ClInclude Include="sparel.h" />
     <ClInclude Include="symSet.h" />
@@ -168,12 +169,12 @@
     <ClCompile Include="ND-seshat.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="batchTest.bat" />
     <None Include="Grammar\mathexp.gram" />
-    <None Include="Grammar\sparels.gmm" />
-    <None Include="Grammar\symbol_nd - 副本.types" />
     <None Include="Grammar\symbol_nd.types" />
   </ItemGroup>
   <ItemGroup>
+    <Text Include="command.txt" />
     <Text Include="VOC2007\charmap_.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

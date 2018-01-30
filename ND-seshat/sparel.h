@@ -117,11 +117,12 @@ inline bool checkLeftRight(std::shared_ptr<Hypothesis> &ha, std::shared_ptr<Hypo
 
 	int rmaw = rma->pCInfo->box.s - rma->pCInfo->box.x;
 	int lmbw = lmb->pCInfo->box.s - lmb->pCInfo->box.x;
-	int rminshift = rmaw * 0.4;
-	int lminshift = rmaw * 0.4;
+	int rminshift = rmaw * 0.2;
+	int lminshift = rmaw * 0.2;
 
 	if (rma->pCInfo->box.t < lmb->pCInfo->box.y || rma->pCInfo->box.y > lmb->pCInfo->box.t)
 	{
+		//rminshift = rmaw * 0.2;
 		lminshift = 0.0;
 	}
 
@@ -336,7 +337,8 @@ public:
 
 		double cenDiff = topb->lcen - bottoma->rcen;
 
-		double avgH = 0.5 * (aheight + topb->pCInfo->box.t - topb->pCInfo->box.y);
+		double avgH = 0.5 * (aheight + topb->pCInfo->box.t - bbox.y);
+		//double avgH = 0.5 * (aheight + bheight);
 
 		double cenRatio = cenDiff / avgH;
 
@@ -380,7 +382,8 @@ public:
 
 		double cenDiff = topa->rcen - bottomb->lcen;
 
-		double avgH = 0.5 * (aheight + bottomb->pCInfo->box.t - bottomb->pCInfo->box.y);
+		double avgH = 0.5 * (aheight + bbox.t - bottomb->pCInfo->box.y);
+		//double avgH = 0.5 * (aheight + bheight);
 
 		double cenRatio = cenDiff / avgH;
 

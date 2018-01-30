@@ -12,19 +12,38 @@
 struct SegUnit
 {
 	cv::Rect ROI;
-
 	//the standart virtual position
-	double cen, top, bottom;
+	std::vector<double> vCen, vTop, vBottom;
 
-	double score;
-	int symID;
-	std::string symStr;
+	std::vector<double> vScore;
+	std::vector<int> vSymID;
+	std::vector<std::string> vSymStr;
 };
 
 inline int computeRectArea(cv::Rect r)
 {
 	return (r.width > 0 && r.height > 0) ? r.width * r.height : std::max(r.width, r.height);
 }
+
+bool getLatexListMap(const std::string &filename, std::map<std::string, std::string> &latexListMap)
+{
+	std::fstream fs(filename, std::ios::in);
+	if (!fs.is_open())
+		HL_CERR_RETURN_FALSE("Failed to open the file " << filename);
+
+	std::string line;
+	while (std::getline(fs, line) && !line.empty())
+	{
+		size_t spos = line.find(" ");
+		std::string latexID, latex;
+		latexID.assign(line.begin(), line.begin() + spos);
+		latex.assign(line.begin() + spos + 1, line.end());
+		latexListMap[latexID] = latex;
+	}
+
+	return true;
+}
+
 
 //The Class include the Handwritten formula image
 //and the symbol recognition result
@@ -36,7 +55,8 @@ public:
 
 	//Load the Sample information from the annotation file of VOC 2007
 	bool LoadFromVOC2007XML(const std::string &xmlName, const std::string &imgPath,
-							const std::string &charMapName = "../ND-seshat/VOC2007/charmap_.txt")
+							std::string &gtLatex, const std::string &charMapName = "VOC2007/charmap_.txt",
+							const std::string &latexListMapFName = "VOC2007/latexListMap.txt")
 	{
 		if (!vSegUnits.empty()) vSegUnits.clear();
 
@@ -57,6 +77,9 @@ public:
 		}
 		fs.close();
 
+		std::map<std::string, std::string> latexListMap;
+		getLatexListMap(latexListMapFName, latexListMap);
+
 		boost::property_tree::ptree pt, annotation;
 		boost::property_tree::read_xml(xmlName, pt);
 		if (pt.empty())
@@ -75,6 +98,7 @@ public:
 			else if (iter->first == "latex")
 			{
 				latexIDStr = iter->second.data();
+				latexIDStr.assign(latexIDStr.begin() + 1, latexIDStr.end() - 1);
 			}
 			else if (iter->first == "size")
 			{
@@ -87,38 +111,183 @@ public:
 				int nameID = iter->second.get<int>("name");
 				if (nameID >= 0 && nameID < mCharMap.size())
 				{
-					seg.symID = mCharMap[nameID].second;
-					if (seg.symID < 0 || seg.symID >= pSymSet->getNClases())
+					int symID;
+					symID = mCharMap[nameID].second;
+					if (symID < 0 || symID >= pSymSet->getNClases())
 						HL_CERR_RETURN_FALSE("The symbol " + mCharMap[nameID].first +
-								" doesn't have a valid ID (" << seg.symID << ") in the symbol set");
+											 " doesn't have a valid ID (" << symID << ") in the symbol set");
 
-					seg.symStr = pSymSet->strClase(seg.symID);
+					seg.vScore.push_back(1.0);
+					seg.vSymID.push_back(symID);
+					seg.vSymStr.push_back(pSymSet->strClase(symID));
 				}
 				else
 					HL_CERR_RETURN_FALSE("The symbol ID " << nameID << " from xml file is not valid ");
 
-				seg.score = 1.0;
 
 				int x = iter->second.get<int>("bndbox.xmin");
 				int y = iter->second.get<int>("bndbox.ymin");
 				int s = iter->second.get<int>("bndbox.xmax");
 				int t = iter->second.get<int>("bndbox.ymax");
-
 				seg.ROI = cv::Rect(x, y, s - x, t - y);
 				setStdVirtualPos(seg);
 				vSegUnits.push_back(seg);
 			}
 		}
-		std::vector<SegUnit> vSegTmp;
-		/*vSegTmp.assign(vSegUnits.begin() + 8, vSegUnits.begin() + 10);
-		vSegTmp.push_back(vSegUnits[11]);
-		vSegTmp.push_back(vSegUnits[12]);
-		
-		vSegUnits = vSegTmp;*/
-		//vSegUnits.assign(vSegUnits.begin() + 6, vSegUnits.begin() + 13);
+		if (latexListMap.find(latexIDStr) == latexListMap.end())
+			return false;
+		gtLatex = latexListMap.find(latexIDStr)->second;
+		return true;
 	}
 
-	void ShowSample(const std::string &windowName = "Sample")
+	bool LoadFromUnifromFile(const std::string &unifromFName, std::string &gtLatex,
+							 std::map<std::string, int> &symbolMap, bool withGT = true)
+	{
+		std::fstream fs(unifromFName, std::ios::in);
+		if (!fs.is_open())
+			HL_CERR_RETURN_FALSE("Failed to open the file " << unifromFName);
+
+		int segN;
+		std::string imgFullPath;
+		fs >> W >> H >> segN >> imgFullPath;
+		Img = cv::imread(imgFullPath, cv::IMREAD_GRAYSCALE);
+		cv::threshold(Img, Img, 100, 255, cv::ThresholdTypes::THRESH_BINARY);
+
+		if (W == 0 || H == 0)
+		{
+			W = Img.cols;
+			H = Img.rows;
+		}
+
+		if (withGT)
+		{
+			std::getline(fs, gtLatex);
+			std::getline(fs, gtLatex);
+		}
+
+
+		vSegUnits.resize(segN);
+
+		for (size_t i = 0; i < segN; i++)
+		{
+			int symN = 0;
+			fs >> symN;
+			vSegUnits[i].vScore.resize(symN);
+			vSegUnits[i].vSymID.resize(symN);
+			vSegUnits[i].vSymStr.resize(symN);
+
+			for (size_t j = 0; j < symN; j++)
+			{
+				fs >> vSegUnits[i].vSymStr[j] >> vSegUnits[i].vScore[j];
+				auto it = symbolMap.find(vSegUnits[i].vSymStr[j]);
+
+				if (it != symbolMap.end())
+				{
+					if (it->second >= 0 && it->second < pSymSet->getNClases())
+					{
+						vSegUnits[i].vSymID[j] = it->second;
+					}
+					else
+						HL_CERR_RETURN_FALSE("The symbol " + vSegUnits[i].vSymStr[j] +
+											 " doesn't have a valid ID(" << it->second << ") in the symbol set");
+				}
+				else
+					HL_CERR_RETURN_FALSE("The symbol " + vSegUnits[i].vSymStr[j] +
+										 " is not found in charmap file");
+
+			}
+
+			int x, y, s, t;
+			fs >> x >> y >> s >> t;
+
+			vSegUnits[i].ROI = cv::Rect(x, y, s - x, t - y);
+			setStdVirtualPos(vSegUnits[i]);
+		}
+
+		/*std::vector<SegUnit> vTmpSegUnits = vSegUnits;
+		vSegUnits.clear();
+		for (size_t i = 0; i < vTmpSegUnits.size(); i++)
+		{
+			if (i >= 14 && i <= 15)
+			{
+				vSegUnits.push_back(vTmpSegUnits[i]);
+			}
+		}*/
+
+		fs.close();
+	}
+
+	bool LoadFromUnifromFile(const std::string &unifromFName, std::string &gtLatex, std::string &imgFullPath,
+							 std::map<std::string, int> &symbolMap, bool withGT = true)
+	{
+		std::fstream fs(unifromFName, std::ios::in);
+		if (!fs.is_open())
+			HL_CERR_RETURN_FALSE("Failed to open the file " << unifromFName);
+
+		int segN;
+		fs >> W >> H >> segN >> imgFullPath;
+		Img = cv::imread(imgFullPath, cv::IMREAD_GRAYSCALE);
+		cv::threshold(Img, Img, 100, 255, cv::ThresholdTypes::THRESH_BINARY);
+
+		if (W == 0 || H == 0)
+		{
+			W = Img.cols;
+			H = Img.rows;
+		}
+
+		if (withGT)
+		{
+			std::getline(fs, gtLatex);
+			std::getline(fs, gtLatex);
+		}
+
+
+		vSegUnits.resize(segN);
+
+		for (size_t i = 0; i < segN; i++)
+		{
+			int symN = 0;
+			fs >> symN;
+			vSegUnits[i].vScore.resize(symN);
+			vSegUnits[i].vSymID.resize(symN);
+			vSegUnits[i].vSymStr.resize(symN);
+
+			for (size_t j = 0; j < symN; j++)
+			{
+				fs >> vSegUnits[i].vSymStr[j] >> vSegUnits[i].vScore[j];
+				auto it = symbolMap.find(vSegUnits[i].vSymStr[j]);
+
+				if (it != symbolMap.end())
+				{
+					if (it->second >= 0 && it->second < pSymSet->getNClases())
+					{
+						vSegUnits[i].vSymID[j] = it->second;
+					}
+					else
+						HL_CERR_RETURN_FALSE("The symbol " + vSegUnits[i].vSymStr[j] +
+											 " doesn't have a valid ID(" << it->second << ") in the symbol set");
+				}
+				else
+					HL_CERR_RETURN_FALSE("The symbol " + vSegUnits[i].vSymStr[j] +
+										 " is not found in charmap file");
+
+			}
+
+			int x, y, s, t;
+			fs >> x >> y >> s >> t;
+
+			vSegUnits[i].ROI = cv::Rect(x, y, s - x, t - y);
+			setStdVirtualPos(vSegUnits[i]);
+		}
+
+		fs.close();
+
+
+		return true;
+	}
+
+
+	int ShowSample(const std::string &windowName = "Sample")
 	{
 		if (Img.empty())
 			HL_CERR("There is not a image loaded");
@@ -137,29 +306,26 @@ public:
 			cv::Rect scaledROI(seg.ROI.x * scale, seg.ROI.y * scale,
 							   seg.ROI.width * scale, seg.ROI.height * scale);
 			cv::rectangle(showImg, scaledROI, color, 2 * scale, cv::LINE_AA);
-			
-			if (pSymSet.use_count() != 0)
-			{
-				cv::Point cenLintS(seg.ROI.x * scale, seg.cen * scale), cenLintE(seg.ROI.br().x * scale, seg.cen * scale);
-				cv::line(showImg, cenLintS, cenLintE, color, 1, cv::LINE_AA);
 
-				cenLintS = cv::Point(seg.ROI.x * scale, seg.top * scale);
-				cenLintE = cv::Point(seg.ROI.br().x * scale, seg.top * scale);
-				cv::line(showImg, cenLintS, cenLintE, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+			cv::Point cenLintS(seg.ROI.x * scale, seg.vCen[0] * scale), cenLintE(seg.ROI.br().x * scale, seg.vCen[0] * scale);
+			cv::line(showImg, cenLintS, cenLintE, color, 1, cv::LINE_AA);
 
-				cenLintS = cv::Point(seg.ROI.x * scale, seg.bottom * scale);
-				cenLintE = cv::Point(seg.ROI.br().x * scale, seg.bottom * scale);
-				cv::line(showImg, cenLintS, cenLintE, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-			}
+			cenLintS = cv::Point(seg.ROI.x * scale, seg.vTop[0] * scale);
+			cenLintE = cv::Point(seg.ROI.br().x * scale, seg.vTop[0] * scale);
+			cv::line(showImg, cenLintS, cenLintE, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
+
+			cenLintS = cv::Point(seg.ROI.x * scale, seg.vBottom[0] * scale);
+			cenLintE = cv::Point(seg.ROI.br().x * scale, seg.vBottom[0] * scale);
+			cv::line(showImg, cenLintS, cenLintE, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
 
 			ioStr.str("");
 			//ioStr << seg.symID << " | " << seg.symStr << " | " << seg.score;
-			ioStr << seg.symID << " | " << seg.symStr << " | " << i;
+			ioStr << seg.vSymID[0] << " | " << seg.vSymStr[0] << " | " << i;
 			i++;
 			cv::putText(showImg, ioStr.str(), scaledROI.tl() - cv::Point(0, 2 * scale), cv::HersheyFonts::FONT_HERSHEY_COMPLEX, 0.8, color);
 		});
 		resizeShow(windowName, showImg);
-		cv::waitKey(0);
+		return cv::waitKey(0);
 	}
 
 	void  detRefSymbol()
@@ -221,7 +387,11 @@ public:
 	void computeSegDistance(int rx, int ry)
 	{
 		int N = vSegUnits.size();
-		vvSegDist.resize(N, std::vector<float>(N, 0.0));
+		vvSegDist.resize(N);
+		for (size_t i = 0; i < N; i++)
+		{
+			vvSegDist[i].resize(N, 0.0);
+		}
 
 		float aux_x = rx;
 		float aux_y = ry;
@@ -238,43 +408,70 @@ public:
 		}
 	}
 
-	std::vector<int> computeRowPeek()
-	{
-		if (Img.empty())
-			HL_CERR("There is not a image loaded");
-
-		std::vector<float> vRawWeight(H, 0.0);
-
-		
-	}
-
-
 	int getSegUnitSize()
 	{
 		return vSegUnits.size();
 	}
 
+	//Get the N-Best symbol hypothesis , if there are not enough hypothesis return all existed
 	void getSegUnitInfo(int segIdx, int NBest, std::vector<int> &vSymIdx,
-						std::vector<float> &vProb)
+						std::vector<float> &vProb, int &cmy, int &asc, int &des)
 	{
-		if (NBest != 1)
-			HL_CERR("Request teh NB = 1 currently!!!");
+		/*if (NBest != 1)
+		HL_CERR("Request teh NB = 1 currently!!!");*/
 
 		vSymIdx.resize(NBest);
 		vProb.resize(NBest);
 
 		SegUnit &curSeg = vSegUnits[segIdx];
 
-		//Get from the Ground truth, just only one
-		vSymIdx[0] = curSeg.symID;
-		vProb[0] = 1.0;
+		int actualNBest = curSeg.vScore.size() >= NBest ? NBest : curSeg.vScore.size();
+		for (size_t i = 0; i < actualNBest; i++)
+		{
+			vSymIdx[i] = curSeg.vSymID[i];
+			vProb[i] = curSeg.vScore[i];
+		}
+
+		cv::Mat segMat = Img(curSeg.ROI);
+		int n = 0;
+		cmy = 0;
+		float asc_ = 0, des_ = 0;
+		float wasc = 0.1, wdes = 1.9;
+		float paso = 1.8 / curSeg.ROI.height;
+		float sumasc = 0, sumdes = 0;
+
+		for (size_t i = 0; i < curSeg.ROI.height; i++)
+		{
+			uchar *pSegRow = segMat.ptr(i);
+			for (size_t j = 0; j < curSeg.ROI.width; j++)
+			{
+				if (pSegRow[j] > 100)
+				{
+					int y = i + curSeg.ROI.y;
+					sumasc += wasc;
+					asc_ += y*wasc;
+
+					n++;
+					cmy += y;
+
+					sumdes += wdes;
+					des_ += y*wdes;
+				}
+			}
+
+			wasc += paso;
+			wdes -= paso;
+		}
+
+		asc = asc_ / sumasc;
+		cmy = cmy / n;
+		des = des_ / sumdes;
 	}
 
 	SegUnit &getSegUnit(int segIdx)
 	{
 		return vSegUnits[segIdx];
 	}
-
 
 	cv::Mat getRGBImg()
 	{
@@ -284,7 +481,7 @@ public:
 	}
 
 	float segDistanceOld(int si, int sj) {
-		
+
 		cv::Rect &segIROI = vSegUnits[si].ROI, &segJROI = vSegUnits[sj].ROI;
 
 		cv::Point tl, br;
@@ -328,7 +525,7 @@ public:
 				cv::Point stl = vSegUnits[i].ROI.tl(), sbr = vSegUnits[i].ROI.br();
 
 				/*if ((stl.x >= utl.x && stl.y >= utl.y && stl.x < ubr.x && stl.y < ubr.y) ||
-					(sbr.x >= utl.x && sbr.y >= utl.y && sbr.x < ubr.x && sbr.y < ubr.y))*/
+				(sbr.x >= utl.x && sbr.y >= utl.y && sbr.x < ubr.x && sbr.y < ubr.y))*/
 				{
 					cv::Rect olROI;
 					if (GetOverlapRoi(emptyROI, vSegUnits[i].ROI, olROI))
@@ -405,15 +602,15 @@ public:
 
 				bool isInXSpace = checkXSpace &&
 					((stl.x >= emptyROI.x && stl.x <= emptyROI.br().x) /*||
-					(sbr.x >= emptyROI.x && sbr.x <= emptyROI.br().x)*/
+																	   (sbr.x >= emptyROI.x && sbr.x <= emptyROI.br().x)*/
 					 );
-				bool isInYSpace = checkYSpace && 
+				bool isInYSpace = checkYSpace &&
 					((stl.y >= emptyROI.y && stl.y <= emptyROI.br().y) /*||
-					(sbr.y >= emptyROI.y && sbr.y <= emptyROI.br().y)*/
+																	   (sbr.y >= emptyROI.y && sbr.y <= emptyROI.br().y)*/
 					 );
 
 				/*if ((stl.x >= utl.x && stl.y >= utl.y && stl.x < ubr.x && stl.y < ubr.y) &&
-					(sbr.x >= utl.x && sbr.y >= utl.y && sbr.x < ubr.x && sbr.y < ubr.y))*/
+				(sbr.x >= utl.x && sbr.y >= utl.y && sbr.x < ubr.x && sbr.y < ubr.y))*/
 				if (isInXSpace || isInYSpace)
 				{
 					cv::Rect olROI;
@@ -430,7 +627,7 @@ public:
 						}
 					}
 				}
-				
+
 			}
 
 		}
@@ -438,7 +635,7 @@ public:
 	}
 
 	float getDist(int si, int sj) {
-		if (si<0 || sj<0 || si >= vvSegDist.size() || sj >= vvSegDist[si].size()) 
+		if (si<0 || sj<0 || si >= vvSegDist.size() || sj >= vvSegDist[si].size())
 			HL_CERR("ERROR: segment id out of range in getDist(" << si << ", " << sj << ")");
 		return vvSegDist[si][sj];
 	}
@@ -449,7 +646,7 @@ public:
 		float dmin = FLT_MAX;
 		for (int i = 0; i < cccA.size(); i++)
 		{
-			if (cccA[i]) 
+			if (cccA[i])
 			{
 				for (int j = 0; j < cccB.size(); j++)
 				{
@@ -464,19 +661,8 @@ public:
 		return dmin;
 	}
 
-
 	//Normalized reference symbol size
 	int RX, RY;
-
-	//Move to CellCYK class
-	/*void Sample::setRegion(CellCYK *c, int segIdx) {
-	c->ccc[segIdx] = true;
-
-	c->x = vSegUnits[segIdx].ROI.x;
-	c->y = vSegUnits[segIdx].ROI.y;
-	c->s = vSegUnits[segIdx].ROI.br().x;
-	c->t = vSegUnits[segIdx].ROI.br().y;
-	}*/
 
 public:
 	float INF_DIST;  //Infinite distance value (visibility)
@@ -492,12 +678,22 @@ private:
 
 	bool setStdVirtualPos(SegUnit &seg)
 	{
-		StdSymInfo sSymInfo = pSymSet->stdInfoClase(seg.symID);
-		double rel_h = sSymInfo.rel_t - sSymInfo.rel_y;
-		double ratio = (seg.ROI.br().y - seg.ROI.y) / rel_h;
-		seg.cen = seg.ROI.y + (STD_CENTER_Y - sSymInfo.rel_y) * ratio;
-		seg.top = seg.ROI.y + (STD_TOP_Y - sSymInfo.rel_y) * ratio;
-		seg.bottom = seg.ROI.y + (STD_BOTTOM_Y - sSymInfo.rel_y) * ratio;
+		int symN = seg.vSymID.size();
+
+		seg.vCen.resize(symN);
+		seg.vTop.resize(symN);
+		seg.vBottom.resize(symN);
+
+		for (size_t i = 0; i < symN; i++)
+		{
+			StdSymInfo sSymInfo = pSymSet->stdInfoClase(seg.vSymID[i]);
+			double rel_h = sSymInfo.rel_t - sSymInfo.rel_y;
+			double ratio = (seg.ROI.br().y - seg.ROI.y) / rel_h;
+			seg.vCen[i] = seg.ROI.y + (STD_CENTER_Y - sSymInfo.rel_y) * ratio;
+			seg.vTop[i] = seg.ROI.y + (STD_TOP_Y - sSymInfo.rel_y) * ratio;
+			seg.vBottom[i] = seg.ROI.y + (STD_BOTTOM_Y - sSymInfo.rel_y) * ratio;
+		}
+
 		return true;
 	}
 };

@@ -51,6 +51,9 @@
     <ClInclude Include="cellInfo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="relationSet.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gmm.cc">
@@ -64,18 +67,18 @@
     <None Include="Grammar\mathexp.gram">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Grammar\sparels.gmm">
-      <Filter>Resource Files</Filter>
-    </None>
     <None Include="Grammar\symbol_nd.types">
       <Filter>Resource Files</Filter>
     </None>
-    <None Include="Grammar\symbol_nd - 副本.types">
+    <None Include="batchTest.bat">
       <Filter>Resource Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
     <Text Include="VOC2007\charmap_.txt">
+      <Filter>Resource Files</Filter>
+    </Text>
+    <Text Include="command.txt">
       <Filter>Resource Files</Filter>
     </Text>
   </ItemGroup>

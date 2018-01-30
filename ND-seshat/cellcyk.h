@@ -1,19 +1,19 @@
 /*Copyright 2014 Francisco Alvaro
 
- This file is part of SESHAT.
+This file is part of SESHAT.
 
-    SESHAT is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+SESHAT is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
 
-    SESHAT is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+SESHAT is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License
-    along with SESHAT.  If not, see <http://www.gnu.org/licenses/>.
+You should have received a copy of the GNU General Public License
+along with SESHAT.  If not, see <http://www.gnu.org/licenses/>.
 */
 #ifndef _CELLCYK_
 #define _CELLCYK_
@@ -24,7 +24,7 @@
 #include "cellInfo.h"
 
 
-class CellCYK{
+class CellCYK {
 public:
 	//Cell info , include bounding-box, segMask, and talla
 	std::shared_ptr<CellInfo> pCInfo;
@@ -120,17 +120,30 @@ public:
 		return true;
 	}
 
-  
+
 };
 
 inline void MergeRegionsCenter(std::shared_ptr<CellCYK>& pCA, int ntIDA,
-						 std::shared_ptr<CellCYK>& pCB, int ntIDB,
-						 std::shared_ptr<CellCYK>& pCS, int ntIDS,
-						 char merge_cen)
+							   std::shared_ptr<CellCYK>& pCB, int ntIDB,
+							   std::shared_ptr<CellCYK>& pCS, int ntIDS,
+							   char merge_cen)
 {
 	std::shared_ptr<Hypothesis> &a = pCA->vNoTerm[ntIDA];
 	std::shared_ptr<Hypothesis> &b = pCB->vNoTerm[ntIDB];
 	std::shared_ptr<Hypothesis> &s = pCS->vNoTerm[ntIDS];
+
+	std::shared_ptr<Hypothesis> &aTop = a->hTop.use_count() == 0 ? a : a->hTop;
+	std::shared_ptr<Hypothesis> &aBottom = a->hBottom.use_count() == 0 ? a : a->hBottom;
+	std::shared_ptr<Hypothesis> &aRight = a->hRight.use_count() == 0 ? a : a->hRight;
+	std::shared_ptr<Hypothesis> &aLeft = a->hLeft.use_count() == 0 ? a : a->hLeft;
+	std::shared_ptr<Hypothesis> &bTop = b->hTop.use_count() == 0 ? b : b->hTop;
+	std::shared_ptr<Hypothesis> &bBottom = b->hBottom.use_count() == 0 ? b : b->hBottom;
+	std::shared_ptr<Hypothesis> &bRight = b->hRight.use_count() == 0 ? b : b->hRight;
+	std::shared_ptr<Hypothesis> &bLeft = b->hLeft.use_count() == 0 ? b : b->hLeft;
+
+	s->hTop = aTop->pCInfo->box.y < bTop->pCInfo->box.y ? aTop : bTop;
+	s->hBottom = aBottom->pCInfo->box.t > bBottom->pCInfo->box.t ? aBottom : bBottom;
+
 	switch (merge_cen) {
 	case 'A': //Data Hypothesis a
 		s->lcen = a->lcen;
@@ -138,6 +151,9 @@ inline void MergeRegionsCenter(std::shared_ptr<CellCYK>& pCA, int ntIDA,
 		s->lineTop = a->lineTop;
 		s->lineBottom = a->lineBottom;
 		s->totalSymWidth = a->totalSymWidth;
+
+		s->hLeft = aLeft;
+		s->hRight = aRight;
 		break;
 	case 'B': //Data Hypothesis b
 		s->lcen = b->lcen;
@@ -145,6 +161,9 @@ inline void MergeRegionsCenter(std::shared_ptr<CellCYK>& pCA, int ntIDA,
 		s->lineTop = b->lineTop;
 		s->lineBottom = b->lineBottom;
 		s->totalSymWidth = b->totalSymWidth;
+
+		s->hLeft = bLeft;
+		s->hRight = bRight;
 		break;
 	case 'C': //Center point
 		s->lcen = (pCA->pCInfo->box.y + pCA->pCInfo->box.t) * 0.5;
@@ -152,6 +171,9 @@ inline void MergeRegionsCenter(std::shared_ptr<CellCYK>& pCA, int ntIDA,
 		s->lineTop = std::min(a->lineTop, b->lineTop);
 		s->lineBottom = std::max(a->lineBottom, b->lineBottom);
 		s->totalSymWidth = std::max(a->totalSymWidth, b->totalSymWidth);
+
+		s->hLeft = aLeft->pCInfo->box.x < bLeft->pCInfo->box.x ? aLeft : bLeft;
+		s->hRight = aRight->pCInfo->box.s > bLeft->pCInfo->box.s ? aRight : bRight;
 		break;
 	case 'M': //Mean of both centers
 		s->lcen = (a->lcen * a->totalSymWidth + b->lcen *b->totalSymWidth) / (a->totalSymWidth + b->totalSymWidth); //a->lcen;
@@ -159,6 +181,9 @@ inline void MergeRegionsCenter(std::shared_ptr<CellCYK>& pCA, int ntIDA,
 		s->lineTop = std::min(a->lineTop, b->lineTop);
 		s->lineBottom = std::max(a->lineBottom, b->lineBottom);
 		s->totalSymWidth = a->totalSymWidth + b->totalSymWidth;
+
+		s->hLeft = aLeft->pCInfo->box.x < bLeft->pCInfo->box.x ? aLeft : bLeft;
+		s->hRight = aRight->pCInfo->box.s > bLeft->pCInfo->box.s ? aRight : bRight;
 		break;
 	default:
 		HL_CERR("Error: Unrecognized option " << merge_cen << " in merge regions");
