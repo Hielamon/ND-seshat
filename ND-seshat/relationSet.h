@@ -115,7 +115,8 @@ public:
 private:
 	std::vector<RelationUnit> vRelH, vRelSub, vRelSup, vRelV, vRelIns, vRelMroot;
 
-	void drawRelationUnits(cv::Mat img, std::vector<RelationUnit> vRelUnits, cv::Scalar color, std::string tag, int padding, double scale)
+	void drawRelationUnits(cv::Mat& img, std::vector<RelationUnit> &vRelUnits,
+						   cv::Scalar color, std::string tag, int padding, double scale)
 	{
 		for (size_t i = 0; i < vRelUnits.size(); i++)
 		{
@@ -134,4 +135,6 @@ private:
 			cv::putText(img, tag, (ptS + ptE)*0.5, cv::HersheyFonts::FONT_HERSHEY_COMPLEX, 0.8, color);
 		}
 	}
+
+
 };

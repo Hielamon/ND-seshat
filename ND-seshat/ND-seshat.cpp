@@ -9,7 +9,7 @@
 #include "sample.h"
 #include "meParser.h"
 
-std::string testFile = "VOC2007/Annotations/hwf_0000007.xml";
+std::string testFile = "VOC2007/Annotations/hwf_0000059.xml";
 std::string VOC2007ImgPath = "VOC2007/JPEGImages/";
 std::string VOC2007CharMapFName = "VOC2007/charmap_.txt";
 bool IsUniformFile = false;
